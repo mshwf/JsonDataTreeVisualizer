@@ -13,5 +13,6 @@
         public const string Inner = "{\"MyInfo\":{\"name\":\"Mohamed\"}}";
 
         public const string Simple2 = "{\"Info\":{\"Name\":\"Mohamed\",\"WorkingFromHome\":false,\"Height\":189,\"Occupation\":{\"Job\":\"Software developer\",\"Company\":\"GET Group\"}}}";
+        public const string Sample3 = "{\"name\":\"Mohamed\"}";
     }
 }

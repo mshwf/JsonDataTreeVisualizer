@@ -121,7 +121,7 @@
     <input type="hidden" name="FlattenedNodes[@i].Key" value="@node.Key" />
     <input type="hidden" name="FlattenedNodes[@i].Level" value="@node.Level" />
     <input type="hidden" name="FlattenedNodes[@i].ValueKind" value="@node.ValueKind" />
-    <input type="hidden" name="FlattenedNodes[@i].ParentName" value="@node.GroupName" />
+    <input type="hidden" name="FlattenedNodes[@i].GroupName" value="@node.GroupName" />
 
     @switch (node.ValueKind)
     {
@@ -133,7 +133,6 @@
             break;
         case System.Text.Json.JsonValueKind.String:
             <input type="text" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
-
             break;
         case System.Text.Json.JsonValueKind.Number:
             <input type="number" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
@@ -147,37 +146,15 @@
             <input name="FlattenedNodes[@i].Value" type="hidden" value="False">
             break;
         case System.Text.Json.JsonValueKind.Null:
+            <input type="text" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
             break;
         default:
             break;
     }
 
-    @*@switch (node.ValueTypeCode)
-    {
-        case TypeCode.Boolean:
-
-            <input type="checkbox" name="FlattenedNodes[@i].Value"
-                   checked="@(node.Value == "True")"
-                   value="True" id="@id" />
-            <input name="FlattenedNodes[@i].Value" type="hidden" value="False">
-
-            break;
-
-        case TypeCode.String:
-            <input type="text" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
-            break;
-
-        case TypeCode.Double:
-            <input type="number" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
-            break;
-        default:
-            break;
-    }*@
-
 </div>
                 i++;
             }
-
         }
         <button type="submit">Save</button>
     }

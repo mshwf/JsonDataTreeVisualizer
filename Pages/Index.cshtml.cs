@@ -16,52 +16,59 @@ namespace JsonDataTreeVisualizer.Pages
         public string GroupName { get; set; }
     }
 
+    [DebuggerDisplay("Header = {Header.GroupName}, Nodes = {Nodes.Count}")]
     public class NodeGroup
     {
         public GroupHeader Header { get; set; }
-        public List<SmartNodeViewModel> Nodes { get; set; }
+        public List<SimpleDataNode> Nodes { get; set; }
     }
+    [DebuggerDisplay("Key = {Key}, ParentNode = {ParentNode?.Key}")]
     public class SmartNode
     {
-        public string Key { get; }
-        public object Value { get; }
+        public string Key { get; set; }
+        public object Value { get; set; }
         public JsonValueKind ValueKind { get; set; }
         public bool IsFinal { get; set; }
         public int Level { get; set; }
+        public SmartNode ParentNode { get; set; }
         public List<SmartNode> SubNodes { get; set; } = new List<SmartNode>();
+        public static SmartNode CreateFinalNode(string key, object value, JsonValueKind valueKind, int level)
+            => new()
+            {
+                Key = key,
+                Value = value,
+                ValueKind = valueKind,
+                IsFinal = true,
+                Level = level
+            };
 
-        public SmartNode(string key, object value, JsonValueKind valueKind, int level)
-        {
-            Key = key;
-            Value = value;
-            ValueKind = valueKind;
-            IsFinal = true;
-            Level = level;
-        }
-        public SmartNode(string key, int level)
-        {
-            Key = key;
-            Level = level;
-        }
+        public static SmartNode CreateObjectNode(string key, int level)
+            => new()
+            {
+                Key = key,
+                Level = level
+            };
     }
 
     [DebuggerDisplay("Key = {Key}, Value = {Value}, Level = {Level}")]
-    public class SmartNodeViewModel
+    public class SimpleDataNode
     {
-        public SmartNodeViewModel() { }//required for model binding to work
+        public SimpleDataNode() { }//required for model binding to work
 
         public string Key { get; set; }
         public string Value { get; set; }
         public int Level { get; set; }
         public JsonValueKind ValueKind { get; set; }
         public string GroupName { get; set; }
-        public SmartNodeViewModel Parent { get; set; }
-        public SmartNodeViewModel(SmartNode node)
+        public SimpleDataNode Parent { get; set; }
+        public SimpleDataNode(SmartNode node)
         {
             Key = node.Key;
             Value = node.Value?.ToString();
             Level = node.Level;
             ValueKind = node.ValueKind;
+            if (node.ParentNode != null)
+                Parent = new SimpleDataNode(node.ParentNode);
         }
     }
 
@@ -73,7 +80,7 @@ namespace JsonDataTreeVisualizer.Pages
 
         public SmartNode HeadNode { get; set; }
         [BindProperty]
-        public List<SmartNodeViewModel> FlattenedNodes { get; set; } = new List<SmartNodeViewModel>();
+        public List<SimpleDataNode> FlattenedNodes { get; set; } = new List<SimpleDataNode>();
         public List<NodeGroup> NodeGroups { get; set; } = new List<NodeGroup>();
 
         public void OnGet()
@@ -86,7 +93,7 @@ namespace JsonDataTreeVisualizer.Pages
             NodeGroups = GroupByLevelOrdered(FlattenedNodes);
         }
 
-        private static List<NodeGroup> GroupByLevelOrdered(List<SmartNodeViewModel> flattenedNodes)
+        private static List<NodeGroup> GroupByLevelOrdered(List<SimpleDataNode> flattenedNodes)
         {
             List<NodeGroup> nodeGroups = new();
 
@@ -98,21 +105,20 @@ namespace JsonDataTreeVisualizer.Pages
             {
                 nodeGroups.Add(new NodeGroup { Header = item.Key, Nodes = item.Value });
             }
-            nodeGroups = nodeGroups.OrderBy(x => x.Header.Level).ToList();
 
             return nodeGroups;
         }
 
         private void FlatenNodes(SmartNode node,
-            List<SmartNodeViewModel> flattened,
-            SmartNode parentNode)
+            List<SimpleDataNode> flattened,
+            SmartNode wrappingNode)
         {
             if (node.IsFinal)
             {
-                var newnode = new SmartNodeViewModel(node)
+                var newnode = new SimpleDataNode(node)
                 {
-                    Parent = new SmartNodeViewModel(parentNode),
-                    GroupName = parentNode.Key
+                    Parent = new SimpleDataNode(node.ParentNode),
+                    GroupName = wrappingNode.Key
                 };
                 flattened.Add(newnode);
             }
@@ -135,9 +141,9 @@ namespace JsonDataTreeVisualizer.Pages
             return node;
         }
 
-        private static SmartNode CreateNodeTree(Dictionary<string, JsonElement> dic, string topNodeName)
+        private static SmartNode CreateNodeTree(Dictionary<string, JsonElement> dic, string fallbackObjectName)
         {
-            SmartNode parentNode = new(topNodeName, 0);
+            SmartNode parentNode = SmartNode.CreateObjectNode(fallbackObjectName, 0);
             NodeCreator(dic, parentNode);
             return parentNode;
         }
@@ -147,60 +153,69 @@ namespace JsonDataTreeVisualizer.Pages
             int level = parentNode.Level + 1;
             foreach (var item in dic)
             {
-                SmartNode node;
+                SmartNode node = null;
                 switch (item.Value.ValueKind)
                 {
                     case JsonValueKind.Object:
-                        node = new SmartNode(item.Key, level);
+                        node = SmartNode.CreateObjectNode(item.Key, level);
+                        node.ParentNode = parentNode;
                         NodeCreator(JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(item.Value.GetRawText()), node);
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.String:
-                        node = new(item.Key, item.Value.GetString(), item.Value.ValueKind, level);
+                        node = SmartNode.CreateFinalNode(item.Key, item.Value.GetString(), item.Value.ValueKind, level);
+                        node.ParentNode = parentNode.ParentNode;
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.Number:
-                        node = new(item.Key, item.Value.GetDouble(), item.Value.ValueKind, level);
+                        node = SmartNode.CreateFinalNode(item.Key, item.Value.GetDouble(), item.Value.ValueKind, level);
+                        node.ParentNode = parentNode.ParentNode;
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.True:
-                        node = new(item.Key, true, item.Value.ValueKind, level);
+                        node = SmartNode.CreateFinalNode(item.Key, true, item.Value.ValueKind, level);
+                        node.ParentNode = parentNode.ParentNode;
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.False:
-                        node = new(item.Key, false, item.Value.ValueKind, level);
+                        node = SmartNode.CreateFinalNode(item.Key, false, item.Value.ValueKind, level);
+                        node.ParentNode = parentNode.ParentNode;
                         parentNode.SubNodes.Add(node);
                         break;
-
                     case JsonValueKind.Null:
+                        node = SmartNode.CreateFinalNode(item.Key, null, item.Value.ValueKind, level);
+                        node.ParentNode = parentNode.ParentNode;
+                        parentNode.SubNodes.Add(node);
+                        break;
                     case JsonValueKind.Undefined:
                     case JsonValueKind.Array:
                         break;
                     default:
                         break;
                 }
+                node.ParentNode = parentNode;
             }
         }
 
 
         public void OnPost()
         {
-            var orderedGroup = GroupByLevelOrdered(FlattenedNodes);
-            string jsn = ToJson(orderedGroup);
+            string jsn = ToJson();
         }
 
-        private static string ToJson(List<NodeGroup> groupsTree)
+        private string ToJson()
         {
-            var hierarchicalGroup = groupsTree.GroupBy(x => new { x.Header.Level }, x => new { x.Nodes, x.Header.GroupName }).ToList();
+            var descendantsTree = GroupByLevelOrdered(FlattenedNodes);
+
+            var generationsTree = descendantsTree.GroupBy(x => new { x.Header.Level }, x => new { x.Nodes, x.Header.GroupName }).ToList();
 
             var topJson = new Dictionary<string, object>();
-            var lst = new List<Dictionary<string, object>>();
 
-            for (int i = 0; i < hierarchicalGroup.Count; i++)
+            for (int i = 0; i < generationsTree.Count; i++)
             {
-                var levelGroup = hierarchicalGroup[i];
+                var generation = generationsTree[i];
                 var allJsonLevel = new Dictionary<string, object>();
-                foreach (var group in levelGroup.ToList())
+                foreach (var group in generation.ToList())
                 {
                     var jsonLevel = new Dictionary<string, object>();
                     foreach (var node in group.Nodes)
@@ -209,11 +224,10 @@ namespace JsonDataTreeVisualizer.Pages
                     }
                     allJsonLevel[group.GroupName] = jsonLevel;
                 }
-                lst.Add(allJsonLevel);
+                topJson[i.ToString()] = allJsonLevel;
             }
 
             var json = JsonSerializer.Serialize(topJson);
-            var json2 = JsonSerializer.Serialize(lst);
             return json;
         }
 
