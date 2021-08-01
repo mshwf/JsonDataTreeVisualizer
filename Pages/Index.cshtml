@@ -105,54 +105,60 @@
     using (Html.BeginForm())
     {
         int i = 0;
+        string headerMargin = "";
         foreach (var group in Model.NodeGroups)
         {
-            var margin = (group.Header.Level * 20).ToString() + "px";
+            var marginVal = (group.Header.Level * 20);
+            var headerMarginVal = ((group.Header.Level - 1) * 20);
+            var margin = marginVal.ToString() + "px";
+            headerMargin = headerMarginVal.ToString() + "px";
 
-            <h3 style="margin-left:@margin">@group.Header.GroupName</h3>
+            <h5 style="margin-left:@headerMargin">@group.Header.GroupName</h5>
 
             foreach (var node in group.Nodes)
             {
                 var id = node.Key + "_" + i;
 
-<div>
-    <label for="@id" style="margin-left: @margin">@node.Key</label>
+                <div>
+                    <label for="@id" style="margin-left: @margin">@node.Key</label>
 
-    <input type="hidden" name="FlattenedNodes[@i].Key" value="@node.Key" />
-    <input type="hidden" name="FlattenedNodes[@i].Level" value="@node.Level" />
-    <input type="hidden" name="FlattenedNodes[@i].ValueKind" value="@node.ValueKind" />
-    <input type="hidden" name="FlattenedNodes[@i].GroupName" value="@node.GroupName" />
+                    <input type="hidden" name="FlattenedNodes[@i].Key" value="@node.Key" />
+                    <input type="hidden" name="FlattenedNodes[@i].Level" value="@node.Level" />
+                    <input type="hidden" name="FlattenedNodes[@i].ValueKind" value="@node.ValueKind" />
+                    <input type="hidden" name="FlattenedNodes[@i].GroupName" value="@node.GroupName" />
+                    <input type="hidden" name="FlattenedNodes[@i].ParentName" value="@node.ParentName" />
+                    <input type="hidden" name="FlattenedNodes[@i].WrappingId" value="@node.WrappingId" />
 
-    @switch (node.ValueKind)
-    {
-        case System.Text.Json.JsonValueKind.Undefined:
-            break;
-        case System.Text.Json.JsonValueKind.Object:
-            break;
-        case System.Text.Json.JsonValueKind.Array:
-            break;
-        case System.Text.Json.JsonValueKind.String:
-            <input type="text" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
-            break;
-        case System.Text.Json.JsonValueKind.Number:
-            <input type="number" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
+                    @switch (node.ValueKind)
+                    {
+                        case System.Text.Json.JsonValueKind.Undefined:
+                            break;
+                        case System.Text.Json.JsonValueKind.Object:
+                            break;
+                        case System.Text.Json.JsonValueKind.Array:
+                            break;
+                        case System.Text.Json.JsonValueKind.String:
+                            <input type="text" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
+                            break;
+                        case System.Text.Json.JsonValueKind.Number:
+                            <input type="number" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
 
-            break;
-        case System.Text.Json.JsonValueKind.True:
-        case System.Text.Json.JsonValueKind.False:
-            <input type="checkbox" name="FlattenedNodes[@i].Value"
-                   checked="@(node.Value == "True")"
-                   value="True" id="@id" />
-            <input name="FlattenedNodes[@i].Value" type="hidden" value="False">
-            break;
-        case System.Text.Json.JsonValueKind.Null:
-            <input type="text" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
-            break;
-        default:
-            break;
-    }
+                            break;
+                        case System.Text.Json.JsonValueKind.True:
+                        case System.Text.Json.JsonValueKind.False:
+                            <input type="checkbox" name="FlattenedNodes[@i].Value"
+                                   checked="@(node.Value == "True")"
+                                   value="True" id="@id" />
+                            <input name="FlattenedNodes[@i].Value" type="hidden" value="False">
+                            break;
+                        case System.Text.Json.JsonValueKind.Null:
+                            <input type="text" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
+                            break;
+                        default:
+                            break;
+                    }
 
-</div>
+                </div>
                 i++;
             }
         }
