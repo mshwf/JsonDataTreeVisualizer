@@ -1,0 +1,50 @@
+﻿@model JsonDataTreeVisualizer.Pages.SmartNode
+
+@{
+    var margin = (Model.Level * 20).ToString() + "px";
+
+    if (!Model.IsFinal)
+    {
+        <h4 style="margin-left:@margin">@Model.Key</h4>
+        foreach (var subnode in Model.SubNodes)
+        {
+            @await Component.InvokeAsync("TreeDrawer", new { headNode = subnode })
+        }
+    }
+    else
+    {
+        int i = 0;
+        var id = Model.Key + "_" + Model.Level;
+        <div>
+            <label for="@id" style="margin-left: @margin">@Model.Key</label>
+            @switch (Model.ValueKind)
+            {
+                case System.Text.Json.JsonValueKind.Undefined:
+                    break;
+                case System.Text.Json.JsonValueKind.Object:
+                    break;
+                case System.Text.Json.JsonValueKind.Array:
+                    break;
+                case System.Text.Json.JsonValueKind.String:
+
+                    <input type="text" name="Value" value="@Model.Value" id="@id" />
+                    break;
+                case System.Text.Json.JsonValueKind.Number:
+                    <input type="number" name="Value" value="@Model.Value" id="@id" />
+
+                    break;
+                case System.Text.Json.JsonValueKind.True:
+                case System.Text.Json.JsonValueKind.False:
+                    <input type="checkbox" name="FlattenedNodes[@i].Value"
+                           checked="@(Model.Value.ToString() == "True")"
+                           value="True" id="@id" />
+                    <input name="FlattenedNodes[@i].Value" type="hidden" value="False">
+                    break;
+                case System.Text.Json.JsonValueKind.Null:
+                    <input type="text" name="FlattenedNodes[@i].Value" value="@Model.Value" id="@id" />
+                    break;
+                default:
+                    break;
+            }
+        </div>
+    }}

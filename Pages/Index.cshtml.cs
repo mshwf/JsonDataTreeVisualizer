@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using JsonDataTreeVisualizer.ViewComponents;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System;
 using System.Collections.Generic;
@@ -97,6 +98,7 @@ namespace JsonDataTreeVisualizer.Pages
         {
         }
 
+        [BindProperty]
         public SmartNode HeadNode { get; set; }
         [BindProperty]
         public SmartNode HeadNodeValues { get; set; }
