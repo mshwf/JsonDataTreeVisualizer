@@ -317,6 +317,7 @@ namespace JsonDataTreeVisualizer.Pages
         public List<NodeElement> NodeGroups { get; set; }
     }
 
+    [DebuggerDisplay("GroupName = {GroupName}, Nodes = {Nodes.Count}")]
     class NodeElement
     {
         public List<SimpleDataNode> Nodes { get; set; }
