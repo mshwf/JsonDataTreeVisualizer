@@ -10,9 +10,9 @@
     {
         using (Html.BeginForm())
         {
-            @await Component.InvokeAsync("TreeDrawer", new { headNode = Model.HeadNode })
+            //@await Component.InvokeAsync("TreeDrawer", new { headNode = Model.HeadNode })
             //await DrawNode(Model.HeadNode);
-
+            <SmartTreeView Node="@(Model.HeadNode)" />
             async Task DrawNode(SmartNode node)
             {
                 var margin = (node.Level * 20).ToString() + "px";

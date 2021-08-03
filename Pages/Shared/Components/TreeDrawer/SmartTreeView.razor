@@ -1,0 +1,24 @@
+﻿<!-- Maybe some title per node, whatever -->
+<h3>@Node.Key - @Node.Value</h3>
+<h2>HELLO</h2>
+<!-- Render node data here, like -->
+@if (Node.Value != null)
+{
+    <i>@Node.Value</i>
+}
+
+<!-- Then, recursion -->
+@foreach (var node in Node.SubNodes)
+{
+    <span>@tab</span>
+    <SmartTreeView Node="@(node)" />
+}
+
+
+
+@code {
+    private const string tab = "\t";
+
+    [Parameter]
+    public SmartNode Node { get; set; }
+}
