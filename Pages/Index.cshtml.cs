@@ -14,6 +14,7 @@ namespace JsonDataTreeVisualizer.Pages
     {
         public int Level { get; set; }
         public string GroupName { get; set; }
+        public Guid? GroupId { get; set; }
     }
 
     [DebuggerDisplay("Header = {Header.GroupName}, Nodes = {Nodes.Count}")]
@@ -77,7 +78,7 @@ namespace JsonDataTreeVisualizer.Pages
         public string GroupName { get; set; }
         public SimpleDataNode Parent { get; set; }
         public string ParentName { get; set; }
-        public Guid? WrappingId { get; set; }
+        public Guid? GroupId { get; set; }
 
         public SimpleDataNode(SmartNode node)
         {
@@ -176,16 +177,17 @@ namespace JsonDataTreeVisualizer.Pages
 
         private static List<NodeGroup> GroupByLevelOrdered(List<SimpleDataNode> flattenedNodes)
         {
-            List<NodeGroup> nodeGroups = new();
-
-            var gr = flattenedNodes.GroupBy(x => new { x.GroupName, x.Level })
-                .ToDictionary(x => new GroupHeader { GroupName = x.Key.GroupName, Level = x.Key.Level }, v => v.ToList())
-                .ToList();
-
-            foreach (var item in gr)
-            {
-                nodeGroups.Add(new NodeGroup { Header = item.Key, Nodes = item.Value });
-            }
+            var nodeGroups = flattenedNodes.GroupBy(x => new { x.GroupName, x.Level, x.GroupId })
+                .Select(x => new NodeGroup
+                {
+                    Header = new GroupHeader
+                    {
+                        GroupName = x.Key.GroupName,
+                        GroupId = x.Key.GroupId,
+                        Level = x.Key.Level
+                    },
+                    Nodes = x.ToList()
+                }).ToList();
 
             return nodeGroups;
         }
@@ -201,7 +203,7 @@ namespace JsonDataTreeVisualizer.Pages
                     Parent = new SimpleDataNode(node.ParentNode),
                     ParentName = node.ParentNode?.ParentNode?.Key,
                     GroupName = wrappingNode.Key,
-                    WrappingId = node.WrappingNodeId
+                    GroupId = wrappingNode.Id
                 };
                 flattened.Add(newnode);
             }
@@ -225,65 +227,52 @@ namespace JsonDataTreeVisualizer.Pages
         {
             var descendantsTree = GroupByLevelOrdered(FlattenedNodes);
 
-            //var generationsTree = descendantsTree.GroupBy(
-            //    nodeGroup => new { nodeGroup.Header.Level },
-            //    nodeGroup2 => new { nodeGroup2.Nodes, nodeGroup2.Header.GroupName })
-            //        .Select(group =>
-            //    new NodesBatches
-            //    {
-            //        Header = new GroupHeader
-            //        {
-            //            Level = group.Key.Level,
-            //            GroupName = group.FirstOrDefault()?.GroupName
-            //        },
-            //        Nodes = group.Select(x => x.Nodes).ToList()
-            //    }).ToList();
-
-            var generationsTree = descendantsTree.GroupBy(
-                nodeGroup => new { nodeGroup.Header.Level },
-                nodeGroup2 => new { nodeGroup2.Nodes, nodeGroup2.Header.GroupName })
-                    .Select(group =>
+            var generationsTree = descendantsTree.GroupBy(x => x.Header.Level,
+                nodeGroup2 =>
+                new NodeElement
+                {
+                    Nodes = nodeGroup2.Nodes,
+                    GroupName = nodeGroup2.Header.GroupName,
+                    GroupId = nodeGroup2.Header.GroupId
+                })
+                .Select(group =>
                 new NodesBatches
                 {
-                    Header = new GroupHeader
-                    {
-                        Level = group.Key.Level,
-                        GroupName = group.FirstOrDefault()?.GroupName,
-                    },
-                    NodeGroups = group.Select(x => x.Nodes).ToList()
+                    Level = group.Key,
+                    NodeGroups = group.Select(x => x).ToList()
                 }).ToList();
 
             var topJson = new Dictionary<string, object>();
-            //Dictionary<string, object> _cache = null;
-            List<string> groupsPre = null;
+            Dictionary<string, object> _cache = new();
             NodesBatches _cacheBatches = null;
 
             foreach (var generation in generationsTree)
             {
                 foreach (var group in generation.NodeGroups)
                 {
-                    var jsonLevel = new Dictionary<string, object>();
-                    foreach (var node in group)
+                    var jsonNode = new Dictionary<string, object>();
+                    foreach (var node in group.Nodes)
                     {
-                        jsonLevel[node.Key] = GetTypedValue(node.Value, node.ValueKind);
+                        jsonNode[node.Key] = GetTypedValue(node.Value, node.ValueKind);
                     }
+                    _cache = jsonNode;
                     if (_cacheBatches != null)
                     {
                         //_cache[generation.Header.GroupName] = jsonLevel;
                         //_cacheBatches.Nodes.Where(x=>x.)
-                        topJson[generation.Header.GroupName] = jsonLevel;
+                        topJson[group.GroupName] = jsonNode;
                     }
                     else
                     {
-                        if (string.IsNullOrEmpty(generation.Header.GroupName))
+                        if (string.IsNullOrEmpty(group.GroupName))
                         {
-                            foreach (var item in jsonLevel)
+                            foreach (var item in jsonNode)
                             {
                                 topJson[item.Key] = item.Value;
                             }
                         }
                         else
-                            topJson[generation.Header.GroupName] = jsonLevel;
+                            topJson[group.GroupName] = jsonNode;
                         //_cache = jsonLevel;
                     }
 
@@ -324,12 +313,14 @@ namespace JsonDataTreeVisualizer.Pages
 
     class NodesBatches
     {
-        public GroupHeader Header { get; set; }
-        public List<List<SimpleDataNode>> NodeGroups { get; set; }
+        public int Level { get; internal set; }
+        public List<NodeElement> NodeGroups { get; set; }
     }
 
-    class NodesByParent : List<SimpleDataNode>
+    class NodeElement
     {
-        //public List<SimpleDataNode> Nodes { get; set; }
+        public List<SimpleDataNode> Nodes { get; set; }
+        public string GroupName { get; set; }
+        public Guid? GroupId { get; internal set; }
     }
 }
