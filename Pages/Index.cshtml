@@ -12,7 +12,9 @@
         {
             //@await Component.InvokeAsync("TreeDrawer", new { headNode = Model.HeadNode })
             //await DrawNode(Model.HeadNode);
-            <SmartTreeView Node="@(Model.HeadNode)" />
+            @*<SmartTreeView Node="@(Model.HeadNode)" />*@
+            @(await Html.RenderComponentAsync<JsonDataTreeVisualizer.Components.SmartTreeView>(RenderMode.Static, new { Node = Model.HeadNode }))
+
             async Task DrawNode(SmartNode node)
             {
                 var margin = (node.Level * 20).ToString() + "px";
@@ -71,7 +73,8 @@
     }
 }
 <!-- #endregion -->
-<!-- #region old 2 -->
+<!--
+    #region old 2 -->
 @*@{
         using (Html.BeginForm())
         {

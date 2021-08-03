@@ -1,20 +1,56 @@
 ﻿<!-- Maybe some title per node, whatever -->
-<h3>@Node.Key - @Node.Value</h3>
-<h2>HELLO</h2>
 <!-- Render node data here, like -->
-@if (Node.Value != null)
+@if (Node != null)
 {
-    <i>@Node.Value</i>
+    var margin = (Node.Level * 20).ToString() + "px";
+
+    @if (Node.IsFinal)
+    {
+        int i = 0;
+        var id = Node.Key + "_" + Node.Level;
+        <div>
+            <label for="@id" style="margin-left: @margin">@Node.Key</label>
+            @switch (Node.ValueKind)
+            {
+                case System.Text.Json.JsonValueKind.Undefined:
+                    break;
+                case System.Text.Json.JsonValueKind.Object:
+                    break;
+                case System.Text.Json.JsonValueKind.Array:
+                    break;
+                case System.Text.Json.JsonValueKind.String:
+                    <input type="text" name="FlattenedNodes[@i].Value" value="@Node.Value" id="@id" />
+                    break;
+                case System.Text.Json.JsonValueKind.Number:
+                    <input type="number" name="FlattenedNodes[@i].Value" value="@Node.Value" id="@id" />
+
+                    break;
+                case System.Text.Json.JsonValueKind.True:
+                case System.Text.Json.JsonValueKind.False:
+                    <input type="checkbox" name="FlattenedNodes[@i].Value"
+                           checked="@(Node.Value.ToString() == "True")"
+                           value="True" id="@id" />
+                    <input name="FlattenedNodes[@i].Value" type="hidden" value="False">
+                    break;
+                case System.Text.Json.JsonValueKind.Null:
+                    <input type="text" name="FlattenedNodes[@i].Value" value="@Node.Value" id="@id" />
+                    break;
+                default:
+                    break;
+            }
+        </div>
+
+    }
+    else
+    {
+        <h1>@Node.Key</h1>
+        @foreach (var node in Node.SubNodes)
+        {
+            <span>@tab</span>
+            <SmartTreeView Node="@(node)" />
+        }
+    }
 }
-
-<!-- Then, recursion -->
-@foreach (var node in Node.SubNodes)
-{
-    <span>@tab</span>
-    <SmartTreeView Node="@(node)" />
-}
-
-
 
 @code {
     private const string tab = "\t";
