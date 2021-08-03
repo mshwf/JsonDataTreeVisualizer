@@ -10,42 +10,59 @@
         {
             using (Html.BeginForm())
             {
+                await DrawNode(Model.HeadNode);
 
-                DrawNode(Model.HeadNode);
-
-                void DrawNode(SmartNode node)
+                async Task DrawNode(SmartNode node)
                 {
                     var margin = (node.Level * 20).ToString() + "px";
-                    if (node.IsFinal)
+                    if (!node.IsFinal)
                     {
+                        <h4 style="margin-left:@margin">@node.Key</h4>
+                        foreach (var subnode in node.SubNodes)
+                        {
+                            await DrawNode(subnode);
+                        }
+                    }
+                    else
+                    {
+                        int i = 0;
                         var id = node.Key + "_" + node.Level;
                         <div>
                             <label for="@id" style="margin-left: @margin">@node.Key</label>
-                            @switch (Type.GetTypeCode(node.Value.GetType()))
+                            @switch (node.ValueKind)
                             {
-                                case TypeCode.Boolean:
-                                    var val = (bool)node.Value;
-                                    @Html.CheckBox(node.Key, val, new { id, name = node.Key });
+                                case System.Text.Json.JsonValueKind.Undefined:
                                     break;
-                                case TypeCode.String:
-                                    <input type="text" value="@node.Value" name="@node.Key" />
+                                case System.Text.Json.JsonValueKind.Object:
                                     break;
-                                case TypeCode.Double:
-                                    <input type="number" value="@node.Value" name="@node.Key" />
+                                case System.Text.Json.JsonValueKind.Array:
+                                    break;
+                                case System.Text.Json.JsonValueKind.String:
+
+                                    @Html.EditorFor(x => x.HeadNodeValues.Value)
+
+                                    <input type="text" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
+                                    break;
+                                case System.Text.Json.JsonValueKind.Number:
+                                    <input type="number" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
+
+                                    break;
+                                case System.Text.Json.JsonValueKind.True:
+                                case System.Text.Json.JsonValueKind.False:
+                                    <input type="checkbox" name="FlattenedNodes[@i].Value"
+                                           checked="@(node.Value.ToString() == "True")"
+                                           value="True" id="@id" />
+                                    <input name="FlattenedNodes[@i].Value" type="hidden" value="False">
+                                    break;
+                                case System.Text.Json.JsonValueKind.Null:
+                                    <input type="text" name="FlattenedNodes[@i].Value" value="@node.Value" id="@id" />
                                     break;
                                 default:
                                     break;
                             }
                         </div>
                     }
-                    else
-                    {
-                        <h4 style="margin-left:@margin">@node.Key</h4>
-                        foreach (var subnode in node.SubNodes)
-                        {
-                            DrawNode(subnode);
-                        }
-                    }
+
                 }
 
                 <button type="submit">Save</button>
@@ -100,7 +117,6 @@
 
     }*@
 <!-- #endregion -->
-
 @{
     using (Html.BeginForm())
     {

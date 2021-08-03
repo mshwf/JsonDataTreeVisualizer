@@ -81,6 +81,7 @@ namespace JsonDataTreeVisualizer.Pages
 
         public SimpleDataNode(SmartNode node)
         {
+            if (node == null) return;
             Key = node.Key;
             Value = node.Value?.ToString();
             Level = node.Level;
@@ -98,6 +99,8 @@ namespace JsonDataTreeVisualizer.Pages
 
         public SmartNode HeadNode { get; set; }
         [BindProperty]
+        public SmartNode HeadNodeValues { get; set; }
+        [BindProperty]
         public List<SimpleDataNode> FlattenedNodes { get; set; } = new List<SimpleDataNode>();
         public List<NodeGroup> NodeGroups { get; set; } = new List<NodeGroup>();
 
@@ -112,11 +115,11 @@ namespace JsonDataTreeVisualizer.Pages
         private static SmartNode CreateJsonTree(Dictionary<string, JsonElement> dic, string fallbackObjectName)
         {
             SmartNode parentNode = SmartNode.CreateObjectNode(fallbackObjectName, 0, Guid.NewGuid());
-            PropagateNodeTree(dic, parentNode, parentNode.WrappingNodeId);
+            PropagateNodeTree(dic, parentNode, parentNode);
             return parentNode;
         }
 
-        private static void PropagateNodeTree(Dictionary<string, JsonElement> dic, SmartNode parentNode, Guid? wrapperId)
+        private static void PropagateNodeTree(Dictionary<string, JsonElement> dic, SmartNode parentNode, SmartNode grandParent)
         {
             int level = parentNode.Level + 1;
             foreach (var item in dic)
@@ -127,33 +130,39 @@ namespace JsonDataTreeVisualizer.Pages
                     case JsonValueKind.Object:
                         node = SmartNode.CreateObjectNode(item.Key, level, parentNode.Id);
                         node.ParentNode = parentNode;
+                        node.WrappingNodeId = parentNode.Id;
                         var subDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(item.Value.GetRawText());
-                        PropagateNodeTree(subDict, node, wrapperId);
+                        PropagateNodeTree(subDict, node, parentNode);
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.String:
                         node = SmartNode.CreateFinalNode(item.Key, item.Value.GetString(), item.Value.ValueKind, level);
                         node.ParentNode = parentNode.ParentNode;
+                        node.WrappingNodeId = grandParent.Id;
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.Number:
                         node = SmartNode.CreateFinalNode(item.Key, item.Value.GetDouble(), item.Value.ValueKind, level);
                         node.ParentNode = parentNode.ParentNode;
+                        node.WrappingNodeId = grandParent.Id;
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.True:
                         node = SmartNode.CreateFinalNode(item.Key, true, item.Value.ValueKind, level);
                         node.ParentNode = parentNode.ParentNode;
+                        node.WrappingNodeId = grandParent.Id;
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.False:
                         node = SmartNode.CreateFinalNode(item.Key, false, item.Value.ValueKind, level);
                         node.ParentNode = parentNode.ParentNode;
+                        node.WrappingNodeId = grandParent.Id;
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.Null:
                         node = SmartNode.CreateFinalNode(item.Key, null, item.Value.ValueKind, level);
                         node.ParentNode = parentNode.ParentNode;
+                        node.WrappingNodeId = grandParent.Id;
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.Undefined:
@@ -162,12 +171,6 @@ namespace JsonDataTreeVisualizer.Pages
                     default:
                         break;
                 }
-                if (item.Value.ValueKind != JsonValueKind.Object)
-                    node.WrappingNodeId = parentNode.Id;
-                //else
-                //    node.WrappingNodeId = parentNode.WrappingNodeId;
-
-                node.ParentNode = parentNode;
             }
         }
 
