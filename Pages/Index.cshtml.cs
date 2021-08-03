@@ -240,15 +240,29 @@ namespace JsonDataTreeVisualizer.Pages
                 nodeGroup => new { nodeGroup.Header.Level },
                 nodeGroup2 => new { nodeGroup2.Nodes, nodeGroup2.Header.GroupName })
                     .Select(group =>
-                new NodesBatches
-                {
-                    Header = new GroupHeader
+                    new NodesBatches
                     {
-                        Level = group.Key.Level,
-                        GroupName = group.FirstOrDefault()?.GroupName,
-                    },
-                    NodeGroups = group.Select(x => x.Nodes).ToList()
-                }).ToList();
+
+                        NodeGroups = group.Select(x => new NodesByParent
+                        {
+                            Header = new GroupHeader
+                            {
+                                Level = group.Key.Level,
+                                GroupName = group.ToList().FirstOrDefault()?.GroupName,
+                            },
+                            Nodes = x.Nodes
+                        }).ToList()
+                    }
+                //new NodesBatches
+                //{
+                //    Header = new GroupHeader
+                //    {
+                //        Level = group.Key.Level,
+                //        GroupName = group.FirstOrDefault()?.GroupName,
+                //    },
+                //    NodeGroups = group.Select(x => x.Nodes).ToList()
+                //}
+                ).ToList();
 
             var topJson = new Dictionary<string, object>();
             //Dictionary<string, object> _cache = null;
@@ -260,7 +274,7 @@ namespace JsonDataTreeVisualizer.Pages
                 foreach (var group in generation.NodeGroups)
                 {
                     var jsonLevel = new Dictionary<string, object>();
-                    foreach (var node in group)
+                    foreach (var node in group.Nodes)
                     {
                         jsonLevel[node.Key] = GetTypedValue(node.Value, node.ValueKind);
                     }
@@ -268,11 +282,11 @@ namespace JsonDataTreeVisualizer.Pages
                     {
                         //_cache[generation.Header.GroupName] = jsonLevel;
                         //_cacheBatches.Nodes.Where(x=>x.)
-                        topJson[generation.Header.GroupName] = jsonLevel;
+                        topJson[group.Header.GroupName] = jsonLevel;
                     }
                     else
                     {
-                        if (string.IsNullOrEmpty(generation.Header.GroupName))
+                        if (string.IsNullOrEmpty(group.Header.GroupName))
                         {
                             foreach (var item in jsonLevel)
                             {
@@ -280,7 +294,7 @@ namespace JsonDataTreeVisualizer.Pages
                             }
                         }
                         else
-                            topJson[generation.Header.GroupName] = jsonLevel;
+                            topJson[group.Header.GroupName] = jsonLevel;
                         //_cache = jsonLevel;
                     }
 
@@ -321,12 +335,12 @@ namespace JsonDataTreeVisualizer.Pages
 
     class NodesBatches
     {
-        public GroupHeader Header { get; set; }
-        public List<List<SimpleDataNode>> NodeGroups { get; set; }
+        public List<NodesByParent> NodeGroups { get; set; }
     }
 
-    class NodesByParent : List<SimpleDataNode>
+    class NodesByParent
     {
-        //public List<SimpleDataNode> Nodes { get; set; }
+        public GroupHeader Header { get; set; }
+        public List<SimpleDataNode> Nodes { get; set; }
     }
 }
