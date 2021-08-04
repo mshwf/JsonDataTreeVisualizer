@@ -98,9 +98,9 @@ namespace JsonDataTreeVisualizer.Pages
         {
         }
 
-        [BindProperty]
+        //[BindProperty]
         public SmartNode HeadNode { get; set; }
-        [BindProperty]
+        //[BindProperty]
         public SmartNode HeadNodeValues { get; set; }
         [BindProperty]
         public List<SimpleDataNode> FlattenedNodes { get; set; } = new List<SimpleDataNode>();
@@ -227,6 +227,7 @@ namespace JsonDataTreeVisualizer.Pages
         {
             var descendantsTree = GroupByLevelOrdered(FlattenedNodes);
 
+            var head = HeadNode;
             //var generationsTree = descendantsTree.GroupBy(
             //    nodeGroup => new { nodeGroup.Header.Level },
             //    nodeGroup2 => new { nodeGroup2.Nodes, nodeGroup2.Header.GroupName })
@@ -260,39 +261,39 @@ namespace JsonDataTreeVisualizer.Pages
             List<string> groupsPre = null;
             NodesBatches _cacheBatches = null;
 
-            foreach (var generation in generationsTree)
-            {
-                foreach (var group in generation.NodeGroups)
-                {
-                    var jsonLevel = new Dictionary<string, object>();
-                    foreach (var node in group)
-                    {
-                        jsonLevel[node.Key] = GetTypedValue(node.Value, node.ValueKind);
-                    }
-                    if (_cacheBatches != null)
-                    {
-                        //_cache[generation.Header.GroupName] = jsonLevel;
-                        //_cacheBatches.Nodes.Where(x=>x.)
-                        topJson[generation.Header.GroupName] = jsonLevel;
-                    }
-                    else
-                    {
-                        if (string.IsNullOrEmpty(generation.Header.GroupName))
-                        {
-                            foreach (var item in jsonLevel)
-                            {
-                                topJson[item.Key] = item.Value;
-                            }
-                        }
-                        else
-                            topJson[generation.Header.GroupName] = jsonLevel;
-                        //_cache = jsonLevel;
-                    }
+            //foreach (var generation in generationsTree)
+            //{
+            //    foreach (var group in generation.NodeGroups)
+            //    {
+            //        var jsonLevel = new Dictionary<string, object>();
+            //        foreach (var node in group)
+            //        {
+            //            jsonLevel[node.Key] = GetTypedValue(node.Value, node.ValueKind);
+            //        }
+            //        if (_cacheBatches != null)
+            //        {
+            //            //_cache[generation.Header.GroupName] = jsonLevel;
+            //            //_cacheBatches.Nodes.Where(x=>x.)
+            //            topJson[generation.Header.GroupName] = jsonLevel;
+            //        }
+            //        else
+            //        {
+            //            if (string.IsNullOrEmpty(generation.Header.GroupName))
+            //            {
+            //                foreach (var item in jsonLevel)
+            //                {
+            //                    topJson[item.Key] = item.Value;
+            //                }
+            //            }
+            //            else
+            //                topJson[generation.Header.GroupName] = jsonLevel;
+            //            //_cache = jsonLevel;
+            //        }
 
-                }
+            //    }
                 //_cacheBatches = generation;
 
-            }
+            //}
 
             var json = JsonSerializer.Serialize(topJson);
             return json;

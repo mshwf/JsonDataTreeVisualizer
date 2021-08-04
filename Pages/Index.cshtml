@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Home page";
 }
+@using JsonDataTreeVisualizer.Components
 
 <!-- #region old 1 -->
 @{
@@ -12,7 +13,7 @@
         {
             //@await Component.InvokeAsync("TreeDrawer", new { headNode = Model.HeadNode })
             //await DrawNode(Model.HeadNode);
-            @*<SmartTreeView Node="@(Model.HeadNode)" />*@
+            <SmartTreeView Node="@(Model.HeadNode)" />
             @(await Html.RenderComponentAsync<JsonDataTreeVisualizer.Components.SmartTreeView>(RenderMode.Static, new { Node = Model.HeadNode }))
 
             async Task DrawNode(SmartNode node)

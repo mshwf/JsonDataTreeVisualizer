@@ -1,6 +1,4 @@
-﻿<!-- Maybe some title per node, whatever -->
-<!-- Render node data here, like -->
-@if (Node != null)
+﻿@if (Node != null)
 {
     var margin = (Node.Level * 20).ToString() + "px";
 
@@ -19,7 +17,7 @@
                 case System.Text.Json.JsonValueKind.Array:
                     break;
                 case System.Text.Json.JsonValueKind.String:
-                    <input type="text" name="FlattenedNodes[@i].Value" value="@Node.Value" id="@id" />
+                    <input type="text" name="Node.Value" value="@Node.Value" id="@id" />
                     break;
                 case System.Text.Json.JsonValueKind.Number:
                     <input type="number" name="FlattenedNodes[@i].Value" value="@Node.Value" id="@id" />
