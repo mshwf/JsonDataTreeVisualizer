@@ -139,11 +139,10 @@
                     <label for="@id" style="margin-left: @margin">@node.Key</label>
 
                     <input type="hidden" name="FlattenedNodes[@i].Key" value="@node.Key" />
-                    <input type="hidden" name="FlattenedNodes[@i].Level" value="@node.Level" />
                     <input type="hidden" name="FlattenedNodes[@i].ValueKind" value="@node.ValueKind" />
-                    <input type="hidden" name="FlattenedNodes[@i].GroupName" value="@node.GroupName" />
                     <input type="hidden" name="FlattenedNodes[@i].ParentName" value="@node.ParentName" />
-                    <input type="hidden" name="FlattenedNodes[@i].WrappingId" value="@node.GroupId" />
+                    <input type="hidden" name="FlattenedNodes[@i].Header.Level" value="@node.Header.Level" />
+                    <input type="hidden" name="FlattenedNodes[@i].Header.GroupName" value="@node.Header.GroupName" />
 
                     @switch (node.ValueKind)
                     {

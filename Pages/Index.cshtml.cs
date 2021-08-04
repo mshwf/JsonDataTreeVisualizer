@@ -9,15 +9,25 @@ using System.Text.Json;
 namespace JsonDataTreeVisualizer.Pages
 {
 
-    [DebuggerDisplay("GroupName = {GroupName}, Level = {Level}")]
+    [DebuggerDisplay("GroupName = {GroupName}, Level = {Level}, UnderLevel = {UnderLevel}")]
     public class GroupHeader
     {
+        public GroupHeader()
+        {
+
+        }
+        public GroupHeader(int level, string groupName, int? underLevel)
+        {
+            Level = level;
+            GroupName = groupName;
+            UnderLevel = underLevel;
+        }
         public int Level { get; set; }
         public string GroupName { get; set; }
-        public Guid? GroupId { get; set; }
+        public int? UnderLevel { get; set; }
     }
 
-    [DebuggerDisplay("Header = {Header.GroupName}, Nodes = {Nodes.Count}")]
+    [DebuggerDisplay("Header = {Header.GroupName}, Nodes = {Nodes?.Count}")]
     public class NodeGroup
     {
         public GroupHeader Header { get; set; }
@@ -29,12 +39,10 @@ namespace JsonDataTreeVisualizer.Pages
         public string Key { get; set; }
         public object Value { get; set; }
         public JsonValueKind ValueKind { get; set; }
-        public bool IsFinal { get; set; }
         public int Level { get; set; }
         public SmartNode ParentNode { get; set; }
         public List<SmartNode> SubNodes { get; set; } = new List<SmartNode>();
-        public Guid? Id { get; set; }
-        public Guid? WrappingNodeId { get; set; }
+        public int? UnderLevel { get; set; }
 
         public static SmartNode CreateFinalNode(string key, object value, JsonValueKind valueKind, int level)
             => new()
@@ -42,22 +50,20 @@ namespace JsonDataTreeVisualizer.Pages
                 Key = key,
                 Value = value,
                 ValueKind = valueKind,
-                IsFinal = true,
                 Level = level
             };
 
-        public static SmartNode CreateObjectNode(string key, int level, Guid? wrappingId)
+        public static SmartNode CreateObjectNode(string key, int level, int? underLevel)
             => new()
             {
                 Key = key,
                 Level = level,
-                Id = Guid.NewGuid(),
-                WrappingNodeId = wrappingId
+                UnderLevel = underLevel
             };
 
         public SmartNode OrderSubNodes()
         {
-            SubNodes = SubNodes.OrderBy(x => !x.IsFinal).ToList();
+            SubNodes = SubNodes.OrderBy(x => x.SubNodes.Count).ToList();
 
             for (int i = 0; i < SubNodes.Count; i++)
                 SubNodes[i] = SubNodes[i].OrderSubNodes();
@@ -73,19 +79,15 @@ namespace JsonDataTreeVisualizer.Pages
 
         public string Key { get; set; }
         public string Value { get; set; }
-        public int Level { get; set; }
         public JsonValueKind ValueKind { get; set; }
-        public string GroupName { get; set; }
         public SimpleDataNode Parent { get; set; }
         public string ParentName { get; set; }
-        public Guid? GroupId { get; set; }
-
+        public GroupHeader Header { get; set; }
         public SimpleDataNode(SmartNode node)
         {
             if (node == null) return;
             Key = node.Key;
             Value = node.Value?.ToString();
-            Level = node.Level;
             ValueKind = node.ValueKind;
             if (node.ParentNode != null)
                 Parent = new SimpleDataNode(node.ParentNode);
@@ -115,12 +117,12 @@ namespace JsonDataTreeVisualizer.Pages
 
         private static SmartNode CreateJsonTree(Dictionary<string, JsonElement> dic, string fallbackObjectName)
         {
-            SmartNode parentNode = SmartNode.CreateObjectNode(fallbackObjectName, 0, Guid.NewGuid());
-            PropagateNodeTree(dic, parentNode, parentNode);
+            SmartNode parentNode = SmartNode.CreateObjectNode(key: fallbackObjectName, level: 0, underLevel: null);
+            PropagateNodeTree(dic, parentNode);
             return parentNode;
         }
 
-        private static void PropagateNodeTree(Dictionary<string, JsonElement> dic, SmartNode parentNode, SmartNode grandParent)
+        private static void PropagateNodeTree(Dictionary<string, JsonElement> dic, SmartNode parentNode)
         {
             int level = parentNode.Level + 1;
             foreach (var item in dic)
@@ -129,41 +131,40 @@ namespace JsonDataTreeVisualizer.Pages
                 switch (item.Value.ValueKind)
                 {
                     case JsonValueKind.Object:
-                        node = SmartNode.CreateObjectNode(item.Key, level, parentNode.Id);
+                        node = SmartNode.CreateObjectNode(item.Key, level, parentNode.Level);
                         node.ParentNode = parentNode;
-                        node.WrappingNodeId = parentNode.Id;
                         var subDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(item.Value.GetRawText());
-                        PropagateNodeTree(subDict, node, parentNode);
+                        PropagateNodeTree(subDict, node);
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.String:
                         node = SmartNode.CreateFinalNode(item.Key, item.Value.GetString(), item.Value.ValueKind, level);
                         node.ParentNode = parentNode.ParentNode;
-                        node.WrappingNodeId = grandParent.Id;
+                        node.UnderLevel = parentNode.Level;
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.Number:
                         node = SmartNode.CreateFinalNode(item.Key, item.Value.GetDouble(), item.Value.ValueKind, level);
                         node.ParentNode = parentNode.ParentNode;
-                        node.WrappingNodeId = grandParent.Id;
+                        node.UnderLevel = parentNode.Level;
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.True:
                         node = SmartNode.CreateFinalNode(item.Key, true, item.Value.ValueKind, level);
                         node.ParentNode = parentNode.ParentNode;
-                        node.WrappingNodeId = grandParent.Id;
+                        node.UnderLevel = parentNode.Level;
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.False:
                         node = SmartNode.CreateFinalNode(item.Key, false, item.Value.ValueKind, level);
                         node.ParentNode = parentNode.ParentNode;
-                        node.WrappingNodeId = grandParent.Id;
+                        node.UnderLevel = parentNode.Level;
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.Null:
                         node = SmartNode.CreateFinalNode(item.Key, null, item.Value.ValueKind, level);
                         node.ParentNode = parentNode.ParentNode;
-                        node.WrappingNodeId = grandParent.Id;
+                        node.UnderLevel = parentNode.Level;
                         parentNode.SubNodes.Add(node);
                         break;
                     case JsonValueKind.Undefined:
@@ -177,15 +178,10 @@ namespace JsonDataTreeVisualizer.Pages
 
         private static List<NodeGroup> GroupByLevelOrdered(List<SimpleDataNode> flattenedNodes)
         {
-            var nodeGroups = flattenedNodes.GroupBy(x => new { x.GroupName, x.Level, x.GroupId })
+            var nodeGroups = flattenedNodes.GroupBy(x => new { x.Header.GroupName, x.Header.Level })
                 .Select(x => new NodeGroup
                 {
-                    Header = new GroupHeader
-                    {
-                        GroupName = x.Key.GroupName,
-                        GroupId = x.Key.GroupId,
-                        Level = x.Key.Level
-                    },
+                    Header = new GroupHeader(x.Key.Level, x.Key.GroupName, null),
                     Nodes = x.ToList()
                 }).ToList();
 
@@ -194,16 +190,15 @@ namespace JsonDataTreeVisualizer.Pages
 
         private void FlattenNodes(SmartNode node,
             List<SimpleDataNode> flattened,
-            SmartNode wrappingNode)
+            SmartNode parentNode)
         {
-            if (node.IsFinal)
+            if (node.SubNodes.Count == 0)
             {
                 var newnode = new SimpleDataNode(node)
                 {
                     Parent = new SimpleDataNode(node.ParentNode),
                     ParentName = node.ParentNode?.ParentNode?.Key,
-                    GroupName = wrappingNode.Key,
-                    GroupId = wrappingNode.Id
+                    Header = new GroupHeader(node.Level, parentNode.Key, node.UnderLevel)
                 };
                 flattened.Add(newnode);
             }
@@ -215,8 +210,6 @@ namespace JsonDataTreeVisualizer.Pages
                 }
             }
         }
-
-
 
         public void OnPost()
         {
@@ -233,7 +226,6 @@ namespace JsonDataTreeVisualizer.Pages
                 {
                     Nodes = nodeGroup2.Nodes,
                     GroupName = nodeGroup2.Header.GroupName,
-                    GroupId = nodeGroup2.Header.GroupId
                 })
                 .Select(group =>
                 new NodesBatches
@@ -322,6 +314,5 @@ namespace JsonDataTreeVisualizer.Pages
     {
         public List<SimpleDataNode> Nodes { get; set; }
         public string GroupName { get; set; }
-        public Guid? GroupId { get; internal set; }
     }
 }
