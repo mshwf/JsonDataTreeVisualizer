@@ -1,259 +1,176 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using JsonDataTreeVisualizer.TreeModels;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 
 namespace JsonDataTreeVisualizer.Pages
 {
-
-    [DebuggerDisplay("GroupName = {GroupName}, Level = {Level}")]
-    public class GroupHeader
-    {
-        public int Level { get; set; }
-        public string GroupName { get; set; }
-    }
-
-    [DebuggerDisplay("Header = {Header.GroupName}, Nodes = {Nodes.Count}")]
-    public class NodeGroup
-    {
-        public GroupHeader Header { get; set; }
-        public List<SimpleDataNode> Nodes { get; set; }
-    }
-    [DebuggerDisplay("Key = {Key}, ParentNode = {ParentNode?.Key}")]
-    public class SmartNode
-    {
-        public string Key { get; set; }
-        public object Value { get; set; }
-        public JsonValueKind ValueKind { get; set; }
-        public bool IsFinal { get; set; }
-        public int Level { get; set; }
-        public SmartNode ParentNode { get; set; }
-        public List<SmartNode> SubNodes { get; set; } = new List<SmartNode>();
-        public static SmartNode CreateFinalNode(string key, object value, JsonValueKind valueKind, int level)
-            => new()
-            {
-                Key = key,
-                Value = value,
-                ValueKind = valueKind,
-                IsFinal = true,
-                Level = level
-            };
-
-        public static SmartNode CreateObjectNode(string key, int level)
-            => new()
-            {
-                Key = key,
-                Level = level
-            };
-    }
-
-    [DebuggerDisplay("Key = {Key}, Value = {Value}, Level = {Level}")]
-    public class SimpleDataNode
-    {
-        public SimpleDataNode() { }//required for model binding to work
-
-        public string Key { get; set; }
-        public string Value { get; set; }
-        public int Level { get; set; }
-        public JsonValueKind ValueKind { get; set; }
-        public string GroupName { get; set; }
-        public SimpleDataNode Parent { get; set; }
-        public SimpleDataNode(SmartNode node)
-        {
-            Key = node.Key;
-            Value = node.Value?.ToString();
-            Level = node.Level;
-            ValueKind = node.ValueKind;
-            if (node.ParentNode != null)
-                Parent = new SimpleDataNode(node.ParentNode);
-        }
-    }
-
     public class IndexModel : PageModel
     {
         public IndexModel()
         {
         }
+        public TreeNode HeadNode { get; set; }
 
-        public SmartNode HeadNode { get; set; }
         [BindProperty]
-        public List<SimpleDataNode> FlattenedNodes { get; set; } = new List<SimpleDataNode>();
-        public List<NodeGroup> NodeGroups { get; set; } = new List<NodeGroup>();
+        public List<TreeNode> FlattenedNodes { get; set; } = new List<TreeNode>();
 
         public void OnGet()
         {
-            var dic = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(JsonSamples.ComplexMultiLevelJson);
-
-            var unorderedSmartNode = CreateNodeTree(dic, "Configurations");
-            HeadNode = OrderSubNodes(unorderedSmartNode);
-            FlatenNodes(HeadNode, FlattenedNodes, null);
-            NodeGroups = GroupByLevelOrdered(FlattenedNodes);
+            var element = JsonSerializer.Deserialize<JsonElement>(JsonSamples.ComplexMultiLevelJson);
+            HeadNode = CreateJsonTree(element, null, null);
+            HeadNode.OrderSubNodes();
+            FlattenNodes(HeadNode, FlattenedNodes);
         }
 
-        private static List<NodeGroup> GroupByLevelOrdered(List<SimpleDataNode> flattenedNodes)
+        private static TreeNode CreateJsonTree(JsonElement jsonElement, string fallbackObjectName, Guid? parentId)
         {
-            List<NodeGroup> nodeGroups = new();
-
-            var gr = flattenedNodes.GroupBy(x => new { x.GroupName, x.Level })
-                .ToDictionary(x => new GroupHeader { GroupName = x.Key.GroupName, Level = x.Key.Level }, v => v.ToList())
-                .ToList();
-
-            foreach (var item in gr)
+            TreeNode parentNode;
+            switch (jsonElement.ValueKind)
             {
-                nodeGroups.Add(new NodeGroup { Header = item.Key, Nodes = item.Value });
+                case JsonValueKind.Array:
+                    parentNode = TreeNode.CreateArrayNode(key: fallbackObjectName, level: 0, parentId: parentId);
+                    foreach (var childJsonElement in jsonElement.EnumerateArray())
+                    {
+                        var node = CreateJsonTree(childJsonElement, null, parentNode.ID);
+                        parentNode.AddChild(node);
+                    }
+                    break;
+                case JsonValueKind.Object:
+                    parentNode = TreeNode.CreateObjectNode(key: fallbackObjectName, level: 0, parentId: parentId);
+                    var objectDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonElement.GetRawText());
+                    PropagateNodeTree(objectDict, parentNode);
+                    break;
+                default:
+                    parentNode = TreeNode.CreateFinalNode(key: fallbackObjectName, GetSimpleObjectValue(jsonElement), jsonElement.ValueKind, level: 0, parentId: parentId);
+                    break;
             }
-
-            return nodeGroups;
-        }
-
-        private void FlatenNodes(SmartNode node,
-            List<SimpleDataNode> flattened,
-            SmartNode wrappingNode)
-        {
-            if (node.IsFinal)
-            {
-                var newnode = new SimpleDataNode(node)
-                {
-                    Parent = new SimpleDataNode(node.ParentNode),
-                    GroupName = wrappingNode.Key
-                };
-                flattened.Add(newnode);
-            }
-            else
-            {
-                foreach (var subNode in node.SubNodes)
-                {
-                    FlatenNodes(subNode, flattened, node);
-                }
-            }
-        }
-
-        private SmartNode OrderSubNodes(SmartNode node)
-        {
-            node.SubNodes = node.SubNodes.OrderBy(x => !x.IsFinal).ToList();
-
-            for (int i = 0; i < node.SubNodes.Count; i++)
-                node.SubNodes[i] = OrderSubNodes(node.SubNodes[i]);
-
-            return node;
-        }
-
-        private static SmartNode CreateNodeTree(Dictionary<string, JsonElement> dic, string fallbackObjectName)
-        {
-            SmartNode parentNode = SmartNode.CreateObjectNode(fallbackObjectName, 0);
-            NodeCreator(dic, parentNode);
             return parentNode;
         }
 
-        private static void NodeCreator(Dictionary<string, JsonElement> dic, SmartNode parentNode)
+        private static void PropagateNodeTree(Dictionary<string, JsonElement> dic, TreeNode parentNode)
         {
             int level = parentNode.Level + 1;
             foreach (var item in dic)
             {
-                SmartNode node = null;
+                TreeNode node;
                 switch (item.Value.ValueKind)
                 {
                     case JsonValueKind.Object:
-                        node = SmartNode.CreateObjectNode(item.Key, level);
-                        node.ParentNode = parentNode;
-                        NodeCreator(JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(item.Value.GetRawText()), node);
-                        parentNode.SubNodes.Add(node);
+                        node = TreeNode.CreateObjectNode(item.Key, level, parentId: parentNode.ID);
+                        var subDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(item.Value.GetRawText());
+                        PropagateNodeTree(subDict, node);
+                        parentNode.Children.Add(node);
                         break;
                     case JsonValueKind.String:
-                        node = SmartNode.CreateFinalNode(item.Key, item.Value.GetString(), item.Value.ValueKind, level);
-                        node.ParentNode = parentNode.ParentNode;
-                        parentNode.SubNodes.Add(node);
+                        node = TreeNode.CreateFinalNode(item.Key, item.Value.GetString(), item.Value.ValueKind, level, parentId: parentNode.ID);
+                        parentNode.Children.Add(node);
                         break;
                     case JsonValueKind.Number:
-                        node = SmartNode.CreateFinalNode(item.Key, item.Value.GetDouble(), item.Value.ValueKind, level);
-                        node.ParentNode = parentNode.ParentNode;
-                        parentNode.SubNodes.Add(node);
+                        node = TreeNode.CreateFinalNode(item.Key, item.Value.GetDouble(), item.Value.ValueKind, level, parentId: parentNode.ID);
+                        parentNode.Children.Add(node);
                         break;
                     case JsonValueKind.True:
-                        node = SmartNode.CreateFinalNode(item.Key, true, item.Value.ValueKind, level);
-                        node.ParentNode = parentNode.ParentNode;
-                        parentNode.SubNodes.Add(node);
+                        node = TreeNode.CreateFinalNode(item.Key, true, item.Value.ValueKind, level, parentId: parentNode.ID);
+                        parentNode.Children.Add(node);
                         break;
                     case JsonValueKind.False:
-                        node = SmartNode.CreateFinalNode(item.Key, false, item.Value.ValueKind, level);
-                        node.ParentNode = parentNode.ParentNode;
-                        parentNode.SubNodes.Add(node);
+                        node = TreeNode.CreateFinalNode(item.Key, false, item.Value.ValueKind, level, parentId: parentNode.ID);
+                        parentNode.Children.Add(node);
                         break;
                     case JsonValueKind.Null:
-                        node = SmartNode.CreateFinalNode(item.Key, null, item.Value.ValueKind, level);
-                        node.ParentNode = parentNode.ParentNode;
-                        parentNode.SubNodes.Add(node);
+                        node = TreeNode.CreateFinalNode(item.Key, null, item.Value.ValueKind, level, parentId: parentNode.ID);
+                        parentNode.Children.Add(node);
+                        break;
+                    case JsonValueKind.Array:
+                        node = TreeNode.CreateArrayNode(item.Key, level, parentId: parentNode.ID);
+
+                        foreach (var jsonElement in item.Value.EnumerateArray())
+                        {
+                            TreeNode nodeEl;
+                            if (jsonElement.ValueKind == JsonValueKind.Object)
+                            {
+                                nodeEl = TreeNode.CreateObjectNode(null, level, parentId: node.ID);
+                                var subDict2 = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonElement.GetRawText());
+                                PropagateNodeTree(subDict2, nodeEl);
+                            }
+                            else
+                            {
+                                object val = GetSimpleObjectValue(jsonElement);
+                                nodeEl = TreeNode.CreateFinalNode(null, val, jsonElement.ValueKind, level, parentId: node.ID);
+                            }
+                            node.Children.Add(nodeEl);
+                        }
+
+                        parentNode.Children.Add(node);
                         break;
                     case JsonValueKind.Undefined:
-                    case JsonValueKind.Array:
-                        break;
                     default:
                         break;
                 }
-                node.ParentNode = parentNode;
             }
         }
 
-
-        public void OnPost()
+        private static object GetSimpleObjectValue(JsonElement jsonElement)
         {
-            string jsn = ToJson();
-        }
-
-        private string ToJson()
-        {
-            var descendantsTree = GroupByLevelOrdered(FlattenedNodes);
-
-            var generationsTree = descendantsTree.GroupBy(x => new { x.Header.Level }, x => new { x.Nodes, x.Header.GroupName }).ToList();
-
-            var topJson = new Dictionary<string, object>();
-
-            for (int i = 0; i < generationsTree.Count; i++)
+            object val = null;
+            switch (jsonElement.ValueKind)
             {
-                var generation = generationsTree[i];
-                var allJsonLevel = new Dictionary<string, object>();
-                foreach (var group in generation.ToList())
-                {
-                    var jsonLevel = new Dictionary<string, object>();
-                    foreach (var node in group.Nodes)
-                    {
-                        jsonLevel[node.Key] = GetTypedValue(node.Value, node.ValueKind);
-                    }
-                    allJsonLevel[group.GroupName] = jsonLevel;
-                }
-                topJson[i.ToString()] = allJsonLevel;
-            }
-
-            var json = JsonSerializer.Serialize(topJson);
-            return json;
-        }
-
-        private static object GetTypedValue(string value, JsonValueKind valueKind)
-        {
-            switch (valueKind)
-            {
-                case JsonValueKind.Undefined:
-                    break;
-                case JsonValueKind.Object:
-                    break;
-                case JsonValueKind.Array:
-                    break;
                 case JsonValueKind.String:
+                    val = jsonElement.GetString();
                     break;
                 case JsonValueKind.Number:
-                    return double.Parse(value);
+                    val = jsonElement.GetDouble();
+                    break;
                 case JsonValueKind.True:
                 case JsonValueKind.False:
-                    return value == "True";
-                case JsonValueKind.Null:
+                    val = jsonElement.GetBoolean();
                     break;
                 default:
                     break;
             }
-            return value;
+            return val;
+        }
+
+        private void FlattenNodes(TreeNode node, List<TreeNode> flattened)
+        {
+            if (node.Children.Count == 0)
+            {
+                flattened.Add(node);
+            }
+            else
+            {
+                flattened.Add(node);
+                foreach (var subNode in node.Children)
+                {
+                    FlattenNodes(subNode, flattened);
+                }
+            }
+        }
+
+        public void OnPost()
+        {
+            string json = ToJson();
+        }
+        private static void AddDescendants(IReadOnlyCollection<TreeNode> nodes, TreeNode parent)
+        {
+            var children = parent.AddChildren(nodes.Where(n => n.ParentID == parent.ID).ToArray());
+
+            foreach (var subnode in children)
+            {
+                AddDescendants(nodes, subnode);
+            }
+        }
+        private string ToJson()
+        {
+            var root = FlattenedNodes.First(x => x.ParentID == null);
+            AddDescendants(FlattenedNodes.Where(n => n.ParentID != null).ToList(), root);
+            object jsonObj = root.ToSerializableObject();
+            var json = JsonSerializer.Serialize(jsonObj);
+            return json;
         }
     }
 }
