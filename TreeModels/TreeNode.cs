@@ -24,7 +24,7 @@ namespace JsonDataTreeVisualizer.TreeModels
             {
                 Key = key,
                 Value = value,
-                StringValue = value.ToString(),
+                StringValue = value?.ToString(),
                 ValueKind = valueKind,
                 Level = level,
                 ParentID = parentId
