@@ -20,7 +20,21 @@ namespace JsonDataTreeVisualizer.Pages
 
         public void OnGet()
         {
-            var element = JsonSerializer.Deserialize<JsonElement>(JsonSamples.ComplexMultiLevelJson);
+            UserJson = JsonSamples.ComplexMultiLevelJson;
+            FromJsonToTree(UserJson);
+        }
+
+        private void FromJsonToTree(string json)
+        {
+            JsonElement element;
+            try
+            {
+                element = JsonSerializer.Deserialize<JsonElement>(json);
+            }
+            catch (Exception)
+            {
+                return;
+            }
             HeadNode = CreateJsonTree(element, null, null);
             HeadNode.OrderSubNodes();
             FlattenNodes(HeadNode, FlattenedNodes);
@@ -151,9 +165,10 @@ namespace JsonDataTreeVisualizer.Pages
             }
         }
 
-        public void OnPost()
+        public void OnPostFromForm()
         {
-            string json = ToJson();
+            string json = ToJson(FlattenedNodes);
+            UserJson = json;
         }
         private static void AddDescendants(IReadOnlyCollection<TreeNode> nodes, TreeNode parent)
         {
@@ -164,13 +179,20 @@ namespace JsonDataTreeVisualizer.Pages
                 AddDescendants(nodes, subnode);
             }
         }
-        private string ToJson()
+        private static string ToJson(List<TreeNode> flattenedNodes)
         {
-            var root = FlattenedNodes.First(x => x.ParentID == null);
-            AddDescendants(FlattenedNodes.Where(n => n.ParentID != null).ToList(), root);
+            var root = flattenedNodes.First(x => x.ParentID == null);
+            AddDescendants(flattenedNodes.Where(n => n.ParentID != null).ToList(), root);
             object jsonObj = root.ToSerializableObject();
             var json = JsonSerializer.Serialize(jsonObj);
             return json;
+        }
+
+        [BindProperty]
+        public string UserJson { get; set; }
+        public void OnPostFromJson()
+        {
+            FromJsonToTree(UserJson);
         }
     }
 }
