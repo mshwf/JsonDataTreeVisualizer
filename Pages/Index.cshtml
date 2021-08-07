@@ -7,7 +7,8 @@
 <div class="container">
     <div class="row">
         <div class="col-md-6">
-            <form method="post" asp-page-handler="FromForm">
+            <form method="post" asp-page-handler="BuildJsonObject" asp-antiforgery="false">
+
                 @{
                     int i = 0;
                     foreach (var node in Model.FlattenedNodes)
@@ -74,23 +75,33 @@
             </form>
         </div>
         <div class="col-md-6">
-            <form asp-page-handler="FromJson" method="post">
-                <div class="form-group mb-2">
-                    <textarea class="form-control" id="txtJson" placeholder="Enter JSON here..." name="UserJson" style="min-height:280px;min-width:300px">
-@Model.UserJson
-</textarea>
-                    <button class="btn btn-outline-primary mt-1" type="submit">Load</button>
-                    <a href="javascript:void();" class="float-right" style="text-decoration: none;" id="beautifyJson">Beautify</a>
-                </div>
-            </form>
+            <div class="form-group mb-2">
+                <form method="get">
+                    <select class="form-control" asp-items="Model.JsonSamplesSelect"
+                            asp-for="SelectedSampleId" onchange="this.form.submit()">
+                        <option value="0">---Select Sample---</option>
+                    </select>
+                </form>
+                <form asp-page-handler="BuildJsonTree" method="post">
+                    <div class="form-group mb-2">
+                        <textarea class="form-control mt-1 mb-1" id="txtJson"
+                                  placeholder="Enter JSON here..."
+                                  name="UserJson"
+                                  style="min-height:280px;min-width:300px">@Model.UserJson</textarea>
+
+                        <button class="btn btn-outline-primary" type="submit">Load</button>
+                        <a href="javascript:void();" class="float-right" style="text-decoration: none;" id="beautifyJson">Beautify</a>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
 <script>
     document.getElementById('beautifyJson').addEventListener('click', function () {
-        var jsonStr = document.getElementById('txtJson').value;
+        var jsonStr = document.getElementById('txtJson').value.trim();
         var jsonObj = JSON.parse(jsonStr);
-        var beatifiedJson = JSON.stringify(jsonObj, null, 4);    // stringify with 4 spaces at each level
+        var beatifiedJson = JSON.stringify(jsonObj, null, 4).trim();    // stringify with 4 spaces at each level
         document.getElementById('txtJson').value = beatifiedJson;
     });
 </script>
