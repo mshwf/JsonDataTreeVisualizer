@@ -8,6 +8,7 @@ using System.Text.Json;
 
 namespace JsonDataTreeVisualizer.Pages
 {
+    [RequestFormLimits(ValueCountLimit = int.MaxValue)]
     [IgnoreAntiforgeryToken]
     public class IndexModel : PageModel
     {
