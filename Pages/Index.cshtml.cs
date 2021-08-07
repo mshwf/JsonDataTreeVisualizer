@@ -15,7 +15,7 @@ namespace JsonDataTreeVisualizer.Pages
         public IndexModel(IConfiguration configuration)
         {
             orderNodesByChildrenCount = configuration.GetValue<bool>("OrderNodesByChildrenCount");
-            JsonSamplesSelect = JsonSamplesData.Samples.Select(x => new SelectListItem(x.Name, x.Id.ToString(), x.Id == SelectedSampleId));
+            JsonSamplesSelect = JsonSamplesStore.Samples.Select(x => new SelectListItem(x.Name, x.Id, x.Id == SelectedSampleId));
         }
         public IEnumerable<SelectListItem> JsonSamplesSelect { get; set; }
         [BindProperty]
@@ -23,12 +23,12 @@ namespace JsonDataTreeVisualizer.Pages
         [BindProperty]
         public string UserJson { get; set; }
         [BindProperty(SupportsGet = true)]
-        public string SelectedSampleId { get; set; } = "4";
+        public string SelectedSampleId { get; set; } = "0";
         public void OnGet()
         {
             try
             {
-                UserJson = JsonSamplesData.Samples.First(x => x.Id == SelectedSampleId).Value;
+                UserJson = JsonSamplesStore.Samples.First(x => x.Id == SelectedSampleId).Value;
                 FlattenedNodes = TreeNodeHelper.FromJsonToFlattenedTree(UserJson, orderNodesByChildrenCount);
             }
             catch
@@ -40,6 +40,7 @@ namespace JsonDataTreeVisualizer.Pages
         {
             try
             {
+                if (string.IsNullOrEmpty(UserJson)) return;
                 FlattenedNodes = TreeNodeHelper.FromJsonToFlattenedTree(UserJson, orderNodesByChildrenCount);
             }
             catch (JsonException)
