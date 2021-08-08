@@ -17,7 +17,7 @@
 
                     var id = node.Key + "_" + i;
 
-                    <div class="form-inline mt-1">
+                    <div class="form-inline mb-1">
                         <input type="hidden" name="FlattenedNodes[@i].Key" value="@node.Key" />
                         <input type="hidden" name="FlattenedNodes[@i].ValueKind" value="@node.ValueKind" />
                         <input type="hidden" name="FlattenedNodes[@i].Level" value="@node.Level" />
@@ -36,7 +36,7 @@
                                 break;
                             case System.Text.Json.JsonValueKind.Number:
                                 <label for="@id" style="margin-left: @margin" class="mr-1">@node.Key</label>
-                                <input type="number" class="form-control" name="FlattenedNodes[@i].StringValue" value="@node.StringValue" id="@id" />
+                                <input type="number" step="any" class="form-control" name="FlattenedNodes[@i].StringValue" value="@node.StringValue" id="@id" />
                                 break;
                             case System.Text.Json.JsonValueKind.True:
                             case System.Text.Json.JsonValueKind.False:
@@ -60,9 +60,9 @@
     </div>
     <div class="col-md-6">
         <div class="form-group mb-2">
-            <form method="get" id="getSampleForm">
+            <form method="get">
                 <select class="form-control" asp-items="Model.JsonSamplesSelect"
-                        asp-for="SelectedSampleId" onchange="getSample()">
+                        asp-for="SelectedSampleId" onchange="this.form.submit()">
                     <option value="0">---Select Sample---</option>
                 </select>
             </form>
@@ -74,7 +74,11 @@
                               style="min-height:280px;min-width:300px">@Model.UserJson</textarea>
 
                     <button class="btn btn-outline-primary" type="submit">Load</button>
-                    <a href="javascript:void();" class="float-right" style="text-decoration: none;" id="beautifyJson">Beautify</a>
+                    <div class="form-group float-right">
+                        <a href="javascript:void();" style="text-decoration: none;" onclick="beautifyJson(4)">Beautify</a>
+                        <a href="javascript:void();" style="text-decoration: none;" onclick="beautifyJson(0)">
+                            <small>Minify</small></a>
+                    </div>
                 </div>
             </form>
         </div>
@@ -82,17 +86,15 @@
 </div>
 
 <script>
-    document.getElementById('beautifyJson').addEventListener('click', beautifyJson);
+    beautifyJson(4);
 
-    function getSample() {
-        document.getElementById('getSampleForm').submit();
-        beautifyJson();
-    }
-
-    function beautifyJson() {
-        var jsonStr = document.getElementById('txtJson').value.trim();
-        var jsonObj = JSON.parse(jsonStr);
-        var beatifiedJson = JSON.stringify(jsonObj, null, 4).trim();    // stringify with 4 spaces at each level
-        document.getElementById('txtJson').value = beatifiedJson;
+    function beautifyJson(n) {
+        var jsonVal = document.getElementById('txtJson').value;
+        if (jsonVal) {
+            var jsonStr = jsonVal.trim();
+            var jsonObj = JSON.parse(jsonStr);
+            var beautifiedJson = JSON.stringify(jsonObj, null, n).trim();    // stringify with n spaces at each level
+            document.getElementById('txtJson').value = beautifiedJson;
+        }
     }
 </script>
