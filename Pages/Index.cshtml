@@ -4,89 +4,95 @@
     ViewData["Title"] = "Home page";
 }
 
-<div class="container">
-    <div class="row">
-        <div class="col-md-6">
-            <form method="post" asp-page-handler="BuildJsonObject" asp-antiforgery="false">
-                @{
-                    for (int i = 0; i < Model.FlattenedNodes.Count; i++)
-                    {
-                        var node = Model.FlattenedNodes[i];
-                        var marginVal = (node.Level * 20);
-                        var margin = marginVal.ToString() + "px";
+<div class="row">
+    <div class="col-md-6">
+        <form method="post" asp-page-handler="BuildJsonObject" asp-antiforgery="false">
+            @{
+                for (int i = 0; i < Model.FlattenedNodes.Count; i++)
+                {
+                    var node = Model.FlattenedNodes[i];
+                    var marginVal = (node.Level * 20);
+                    var margin = marginVal.ToString() + "px";
 
 
-                        var id = node.Key + "_" + i;
+                    var id = node.Key + "_" + i;
 
-                        <div class="form-inline mt-1">
-                            <input type="hidden" name="FlattenedNodes[@i].Key" value="@node.Key" />
-                            <input type="hidden" name="FlattenedNodes[@i].ValueKind" value="@node.ValueKind" />
-                            <input type="hidden" name="FlattenedNodes[@i].Level" value="@node.Level" />
-                            <input type="hidden" name="FlattenedNodes[@i].ID" value="@node.ID" />
-                            <input type="hidden" name="FlattenedNodes[@i].ParentID" value="@node.ParentID" />
+                    <div class="form-inline mt-1">
+                        <input type="hidden" name="FlattenedNodes[@i].Key" value="@node.Key" />
+                        <input type="hidden" name="FlattenedNodes[@i].ValueKind" value="@node.ValueKind" />
+                        <input type="hidden" name="FlattenedNodes[@i].Level" value="@node.Level" />
+                        <input type="hidden" name="FlattenedNodes[@i].ID" value="@node.ID" />
+                        <input type="hidden" name="FlattenedNodes[@i].ParentID" value="@node.ParentID" />
 
-                            @switch (node.ValueKind)
-                            {
-                                case System.Text.Json.JsonValueKind.Object:
-                                case System.Text.Json.JsonValueKind.Array:
-                                    <h5 style="margin-left: @margin">@node.Key</h5>
-                                    break;
-                                case System.Text.Json.JsonValueKind.String:
-                                    <label for="@id" style="margin-left: @margin" class="mr-1">@node.Key</label>
-                                    <input type="text" class="form-control" name="FlattenedNodes[@i].StringValue" value="@node.StringValue" id="@id" />
-                                    break;
-                                case System.Text.Json.JsonValueKind.Number:
-                                    <label for="@id" style="margin-left: @margin" class="mr-1">@node.Key</label>
-                                    <input type="number" class="form-control" name="FlattenedNodes[@i].StringValue" value="@node.StringValue" id="@id" />
-                                    break;
-                                case System.Text.Json.JsonValueKind.True:
-                                case System.Text.Json.JsonValueKind.False:
-                                    <label for="@id" style="margin-left: @margin" class="mr-1">@node.Key</label>
-                                    <input type="checkbox" class="form-control" name="FlattenedNodes[@i].StringValue"
-                                           checked="@(node.StringValue.ToString() == "True")"
-                                           value="True" id="@id" />
-                                    <input name="FlattenedNodes[@i].StringValue" type="hidden" value="False">
-                                    break;
-                                case System.Text.Json.JsonValueKind.Null:
-                                case System.Text.Json.JsonValueKind.Undefined:
-                                    <label for="@id" style="margin-left: @margin" class="mr-1">@node.Key</label>
-                                    break;
-                            }
+                        @switch (node.ValueKind)
+                        {
+                            case System.Text.Json.JsonValueKind.Object:
+                            case System.Text.Json.JsonValueKind.Array:
+                                <h5 style="margin-left: @margin">@node.Key</h5>
+                                break;
+                            case System.Text.Json.JsonValueKind.String:
+                                <label for="@id" style="margin-left: @margin" class="mr-1">@node.Key</label>
+                                <input type="text" class="form-control" name="FlattenedNodes[@i].StringValue" value="@node.StringValue" id="@id" />
+                                break;
+                            case System.Text.Json.JsonValueKind.Number:
+                                <label for="@id" style="margin-left: @margin" class="mr-1">@node.Key</label>
+                                <input type="number" class="form-control" name="FlattenedNodes[@i].StringValue" value="@node.StringValue" id="@id" />
+                                break;
+                            case System.Text.Json.JsonValueKind.True:
+                            case System.Text.Json.JsonValueKind.False:
+                                <label for="@id" style="margin-left: @margin" class="mr-1">@node.Key</label>
+                                <input type="checkbox" class="form-control" name="FlattenedNodes[@i].StringValue"
+                                       checked="@(node.StringValue.ToString() == "True")"
+                                       value="True" id="@id" />
+                                <input name="FlattenedNodes[@i].StringValue" type="hidden" value="False">
+                                break;
+                            case System.Text.Json.JsonValueKind.Null:
+                            case System.Text.Json.JsonValueKind.Undefined:
+                                <label for="@id" style="margin-left: @margin" class="mr-1">@node.Key</label>
+                                break;
+                        }
 
-                        </div>
-                    }
-                    <button type="submit" class="btn btn-primary">Save</button>
-                }
-            </form>
-        </div>
-        <div class="col-md-6">
-            <div class="form-group mb-2">
-                <form method="get">
-                    <select class="form-control" asp-items="Model.JsonSamplesSelect"
-                            asp-for="SelectedSampleId" onchange="this.form.submit()">
-                        <option value="0">---Select Sample---</option>
-                    </select>
-                </form>
-                <form asp-page-handler="BuildJsonTree" method="post">
-                    <div class="form-group mb-2">
-                        <textarea class="form-control mt-1 mb-1" id="txtJson"
-                                  placeholder="Enter JSON here..."
-                                  name="UserJson"
-                                  style="min-height:280px;min-width:300px">@Model.UserJson</textarea>
-
-                        <button class="btn btn-outline-primary" type="submit">Load</button>
-                        <a href="javascript:void();" class="float-right" style="text-decoration: none;" id="beautifyJson">Beautify</a>
                     </div>
-                </form>
-            </div>
+                }
+                <button type="submit" class="btn btn-primary">Save</button>
+            }
+        </form>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group mb-2">
+            <form method="get" id="getSampleForm">
+                <select class="form-control" asp-items="Model.JsonSamplesSelect"
+                        asp-for="SelectedSampleId" onchange="getSample()">
+                    <option value="0">---Select Sample---</option>
+                </select>
+            </form>
+            <form asp-page-handler="BuildJsonTree" method="post">
+                <div class="form-group mb-2">
+                    <textarea class="form-control mt-1 mb-1" id="txtJson"
+                              placeholder="Enter JSON here..."
+                              name="UserJson"
+                              style="min-height:280px;min-width:300px">@Model.UserJson</textarea>
+
+                    <button class="btn btn-outline-primary" type="submit">Load</button>
+                    <a href="javascript:void();" class="float-right" style="text-decoration: none;" id="beautifyJson">Beautify</a>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
 <script>
-    document.getElementById('beautifyJson').addEventListener('click', function () {
+    document.getElementById('beautifyJson').addEventListener('click', beautifyJson);
+
+    function getSample() {
+        document.getElementById('getSampleForm').submit();
+        beautifyJson();
+    }
+
+    function beautifyJson() {
         var jsonStr = document.getElementById('txtJson').value.trim();
         var jsonObj = JSON.parse(jsonStr);
         var beatifiedJson = JSON.stringify(jsonObj, null, 4).trim();    // stringify with 4 spaces at each level
         document.getElementById('txtJson').value = beatifiedJson;
-    });
+    }
 </script>
