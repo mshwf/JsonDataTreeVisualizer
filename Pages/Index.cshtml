@@ -47,7 +47,9 @@
                                            value="True" id="@id" />
                                     <input name="FlattenedNodes[@i].StringValue" type="hidden" value="False">
                                     break;
-                                default:
+                                case System.Text.Json.JsonValueKind.Null:
+                                case System.Text.Json.JsonValueKind.Undefined:
+                                    <label for="@id" style="margin-left: @margin" class="mr-1">@node.Key</label>
                                     break;
                             }
 
