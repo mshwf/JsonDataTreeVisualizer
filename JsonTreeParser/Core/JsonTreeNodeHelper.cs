@@ -1,19 +1,36 @@
-﻿using System;
+﻿using JsonTreeParser.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 
-namespace JsonDataTreeVisualizer
+namespace JsonTreeParser.Core
 {
-    public class TreeNodeHelper
+    public class JsonTreeNodeHelper
     {
-        public static TreeNode CreateJsonTree(JsonElement jsonElement, string fallbackObjectName, Guid? parentId)
+        public static string FromFlattenedTreeToJson(List<JsonTreeNode> flattenedNodes)
         {
-            TreeNode parentNode;
+            var root = flattenedNodes.First(x => x.ParentID == null);
+            var children = flattenedNodes.Where(n => n.ParentID != null).ToList();
+            children.AddDescendants(root);
+            object jsonObj = root.ToSerializableObject();
+            var json = JsonSerializer.Serialize(jsonObj);
+            return json;
+        }
+        public static List<JsonTreeNode> FromJsonToFlattenedTree(string json, bool orderByChildrenCount, string fallbackObjectName)
+        {
+            var headNode = FromJsonToTree(json, orderByChildrenCount, fallbackObjectName);
+            var flattenedNodes = headNode.FlattenNodes();
+            return flattenedNodes;
+        }
+
+        private static JsonTreeNode CreateJsonTree(JsonElement jsonElement, string fallbackObjectName, Guid? parentId)
+        {
+            JsonTreeNode parentNode;
             switch (jsonElement.ValueKind)
             {
                 case JsonValueKind.Array:
-                    parentNode = TreeNode.CreateArrayNode(key: fallbackObjectName, level: 0, parentId: parentId);
+                    parentNode = JsonTreeNode.CreateArrayNode(key: fallbackObjectName, level: 0, parentId: parentId);
                     foreach (var childJsonElement in jsonElement.EnumerateArray())
                     {
                         var node = CreateJsonTree(childJsonElement, null, parentNode.ID);
@@ -21,91 +38,74 @@ namespace JsonDataTreeVisualizer
                     }
                     break;
                 case JsonValueKind.Object:
-                    parentNode = TreeNode.CreateObjectNode(key: fallbackObjectName, level: 0, parentId: parentId);
+                    parentNode = JsonTreeNode.CreateObjectNode(key: fallbackObjectName, level: 0, parentId: parentId);
                     var objectDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonElement.GetRawText());
                     PropagateNodeTree(objectDict, parentNode);
                     break;
                 default:
-                    parentNode = TreeNode.CreateFinalNode(key: fallbackObjectName, GetSimpleObjectValue(jsonElement), jsonElement.ValueKind, level: 0, parentId: parentId);
+                    parentNode = JsonTreeNode.CreateFinalNode(key: fallbackObjectName, level: 0, parentId: parentId, GetSimpleObjectValue(jsonElement), jsonElement.ValueKind);
                     break;
             }
             return parentNode;
         }
-        public static string FromFlattenedTreeToJson(List<TreeNode> flattenedNodes)
-        {
-            var root = flattenedNodes.First(x => x.ParentID == null);
-            AddDescendants(flattenedNodes.Where(n => n.ParentID != null).ToList(), root);
-            object jsonObj = root.ToSerializableObject();
-            var json = JsonSerializer.Serialize(jsonObj);
-            return json;
-        }
-        public static TreeNode FromJsonToTree(string json, bool orderByChildrenCount)
+        private static JsonTreeNode FromJsonToTree(string json, bool orderByChildrenCount, string fallbackObjectName)
         {
             var element = JsonSerializer.Deserialize<JsonElement>(json);
-            var headNode = CreateJsonTree(element, null, null);
+            var headNode = CreateJsonTree(element, fallbackObjectName, null);
             if (orderByChildrenCount)
                 headNode.OrderByChildren();
             return headNode;
         }
-        public static List<TreeNode> FromJsonToFlattenedTree(string json, bool orderByChildrenCount)
-        {
-
-            var flattenedNodes = new List<TreeNode>();
-            var headNode = FromJsonToTree(json, orderByChildrenCount);
-            headNode.FlattenNodes(flattenedNodes);
-            return flattenedNodes;
-        }
-
-        private static void PropagateNodeTree(Dictionary<string, JsonElement> dic, TreeNode parentNode)
+        private static void PropagateNodeTree(Dictionary<string, JsonElement> dic, JsonTreeNode parentNode)
         {
             int level = parentNode.Level + 1;
             foreach (var item in dic)
             {
-                TreeNode node;
+                JsonTreeNode node;
                 switch (item.Value.ValueKind)
                 {
                     case JsonValueKind.Object:
-                        node = TreeNode.CreateObjectNode(item.Key, level, parentId: parentNode.ID);
+                        node = JsonTreeNode.CreateObjectNode(item.Key, level, parentId: parentNode.ID);
                         var subDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(item.Value.GetRawText());
                         PropagateNodeTree(subDict, node);
                         parentNode.Children.Add(node);
                         break;
                     case JsonValueKind.String:
-                        node = TreeNode.CreateFinalNode(item.Key, item.Value.GetString(), item.Value.ValueKind, level, parentId: parentNode.ID);
+                        node = JsonTreeNode.CreateFinalNode(item.Key, level, parentId: parentNode.ID, item.Value.GetString(), item.Value.ValueKind);
                         parentNode.Children.Add(node);
                         break;
                     case JsonValueKind.Number:
-                        node = TreeNode.CreateFinalNode(item.Key, item.Value.GetDouble(), item.Value.ValueKind, level, parentId: parentNode.ID);
+                        node = JsonTreeNode.CreateFinalNode(item.Key, level, parentId: parentNode.ID, item.Value.GetDouble(), item.Value.ValueKind);
                         parentNode.Children.Add(node);
                         break;
                     case JsonValueKind.True:
-                        node = TreeNode.CreateFinalNode(item.Key, true, item.Value.ValueKind, level, parentId: parentNode.ID);
+                        node = JsonTreeNode.CreateFinalNode(item.Key, level, parentId: parentNode.ID, true, item.Value.ValueKind);
                         parentNode.Children.Add(node);
                         break;
                     case JsonValueKind.False:
-                        node = TreeNode.CreateFinalNode(item.Key, false, item.Value.ValueKind, level, parentId: parentNode.ID);
+                        node = JsonTreeNode.CreateFinalNode(item.Key, level, parentId: parentNode.ID, false, item.Value.ValueKind);
                         parentNode.Children.Add(node);
                         break;
                     case JsonValueKind.Null:
-                        node = TreeNode.CreateFinalNode(item.Key, null, item.Value.ValueKind, level, parentId: parentNode.ID);
+                        node = JsonTreeNode.CreateFinalNode(item.Key, level, parentId: parentNode.ID, null, item.Value.ValueKind);
                         parentNode.Children.Add(node);
                         break;
                     case JsonValueKind.Array:
-                        node = TreeNode.CreateArrayNode(item.Key, level, parentId: parentNode.ID);
+                        node = JsonTreeNode.CreateArrayNode(item.Key, level, parentId: parentNode.ID);
 
                         foreach (var jsonElement in item.Value.EnumerateArray())
                         {
-                            TreeNode nodeEl;
+                            JsonTreeNode nodeEl;
                             if (jsonElement.ValueKind == JsonValueKind.Object)
                             {
-                                nodeEl = TreeNode.CreateObjectNode(null, level, parentId: node.ID);
+                                nodeEl = JsonTreeNode.CreateObjectNode(null, level, parentId: node.ID);
                                 var subDict2 = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonElement.GetRawText());
                                 PropagateNodeTree(subDict2, nodeEl);
                             }
                             else
                             {
                                 object val = GetSimpleObjectValue(jsonElement);
-                                nodeEl = TreeNode.CreateFinalNode(null, val, jsonElement.ValueKind, level + 1, parentId: node.ID);
+                                nodeEl = JsonTreeNode.CreateFinalNode(null, level + 1, parentId: node.ID, val, jsonElement.ValueKind);
                             }
                             node.Children.Add(nodeEl);
                         }
@@ -137,15 +137,6 @@ namespace JsonDataTreeVisualizer
                     break;
             }
             return val;
-        }
-        private static void AddDescendants(IReadOnlyCollection<TreeNode> nodes, TreeNode parent)
-        {
-            var children = parent.AddChildren(nodes.Where(n => n.ParentID == parent.ID).ToArray());
-
-            foreach (var subnode in children)
-            {
-                AddDescendants(nodes, subnode);
-            }
         }
     }
 }

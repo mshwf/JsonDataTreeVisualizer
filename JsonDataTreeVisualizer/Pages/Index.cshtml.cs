@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using JsonTreeParser.Core;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Configuration;
@@ -20,7 +21,7 @@ namespace JsonDataTreeVisualizer.Pages
         }
         public IEnumerable<SelectListItem> JsonSamplesSelect { get; set; }
         [BindProperty]
-        public List<TreeNode> FlattenedNodes { get; set; } = new List<TreeNode>();
+        public List<JsonTreeNode> FlattenedNodes { get; set; } = new List<JsonTreeNode>();
         [BindProperty]
         public string UserJson { get; set; }
         [BindProperty(SupportsGet = true)]
@@ -30,7 +31,7 @@ namespace JsonDataTreeVisualizer.Pages
             try
             {
                 UserJson = JsonSamplesStore.Samples.First(x => x.Id == SelectedSampleId).Value;
-                FlattenedNodes = TreeNodeHelper.FromJsonToFlattenedTree(UserJson, orderNodesByChildrenCount);
+                FlattenedNodes = JsonTreeNodeHelper.FromJsonToFlattenedTree(UserJson, orderNodesByChildrenCount, null);
             }
             catch
             {
@@ -42,7 +43,7 @@ namespace JsonDataTreeVisualizer.Pages
             try
             {
                 if (string.IsNullOrEmpty(UserJson)) return;
-                FlattenedNodes = TreeNodeHelper.FromJsonToFlattenedTree(UserJson, orderNodesByChildrenCount);
+                FlattenedNodes = JsonTreeNodeHelper.FromJsonToFlattenedTree(UserJson, orderNodesByChildrenCount, null);
             }
             catch (JsonException)
             {
@@ -51,7 +52,7 @@ namespace JsonDataTreeVisualizer.Pages
         }
         public void OnPostBuildJsonObject()
         {
-            string json = TreeNodeHelper.FromFlattenedTreeToJson(FlattenedNodes);
+            string json = JsonTreeNodeHelper.FromFlattenedTreeToJson(FlattenedNodes);
             UserJson = json;
         }
     }
