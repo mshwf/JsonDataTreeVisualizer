@@ -5,25 +5,9 @@ using System.Text.Json;
 
 namespace JsonTreeParser.Extensions
 {
-    internal static class JsonTreeNodeExtensions
+    public static class JsonTreeNodeExtensions
     {
-        internal static void AddDescendants(this IReadOnlyCollection<JsonTreeNode> nodes, JsonTreeNode parent)
-        {
-            var children = parent.AddChildren(nodes.Where(n => n.ParentID == parent.ID).ToArray());
-
-            foreach (var subnode in children)
-            {
-                nodes.AddDescendants(subnode);
-            }
-        }
-        internal static void OrderByChildren(this JsonTreeNode node)
-        {
-            node.Children = node.Children.OrderBy(x => x.Children.Count).ToList();
-
-            for (int i = 0; i < node.Children.Count; i++)
-                node.Children[i].OrderByChildren();
-        }
-        internal static List<JsonTreeNode> FlattenNodes(this JsonTreeNode node)
+        public static List<JsonTreeNode> FlattenNodes(this JsonTreeNode node)
         {
             List<JsonTreeNode> flattened = new();
 
@@ -41,8 +25,38 @@ namespace JsonTreeParser.Extensions
             }
             return flattened;
         }
+        public static string Serialize(this JsonTreeNode root)
+        {
+            object jsonObj = root.ToSerializableObject();
+            var json = JsonSerializer.Serialize(jsonObj);
+            return json;
+        }
+        public static JsonTreeNode BuildRootNode(this List<JsonTreeNode> flattenedNodes)
+        {
+            var root = flattenedNodes.First(x => x.ParentID == null);
+            var children = flattenedNodes.Where(n => n.ParentID != null).ToList();
+            root.AddDescendants(children);
+            return root;
+        }
+        
+        internal static void OrderByChildren(this JsonTreeNode node)
+        {
+            node.Children = node.Children.OrderBy(x => x.Children.Count).ToList();
 
-        internal static object ToSerializableObject(this JsonTreeNode node)
+            for (int i = 0; i < node.Children.Count; i++)
+                node.Children[i].OrderByChildren();
+        }
+        
+        private static void AddDescendants(this JsonTreeNode parent, IReadOnlyCollection<JsonTreeNode> nodes)
+        {
+            var children = parent.AddChildren(nodes.Where(n => n.ParentID == parent.ID).ToArray());
+
+            foreach (var subnode in children)
+            {
+                subnode.AddDescendants(nodes);
+            }
+        }
+        private static object ToSerializableObject(this JsonTreeNode node)
         {
             object ser;
             if (node.ValueKind == JsonValueKind.Array)

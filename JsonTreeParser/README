@@ -1,0 +1,11 @@
+﻿Usage:
+
+Two main functionalities:
+
+Convert JSON to Tree and return list of nodes:
+    var root = JsonTreeNodeBuilder.BuildFromJson(UserJson, orderNodesByChildrenCount, null);
+    FlattenedNodes = root.FlattenNodes();
+
+Convert list of nodes to JSON:
+    var root = FlattenedNodes.BuildRootNode();
+    UserJson = root.Serialize();

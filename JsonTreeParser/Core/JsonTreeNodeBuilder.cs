@@ -1,29 +1,21 @@
 ﻿using JsonTreeParser.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
-
+ 
 namespace JsonTreeParser.Core
 {
-    public class JsonTreeNodeHelper
+    public class JsonTreeNodeBuilder
     {
-        public static string FromFlattenedTreeToJson(List<JsonTreeNode> flattenedNodes)
+        public static JsonTreeNode BuildFromJson(string json, bool orderByChildrenCount, string fallbackObjectName)
         {
-            var root = flattenedNodes.First(x => x.ParentID == null);
-            var children = flattenedNodes.Where(n => n.ParentID != null).ToList();
-            children.AddDescendants(root);
-            object jsonObj = root.ToSerializableObject();
-            var json = JsonSerializer.Serialize(jsonObj);
-            return json;
+            var element = JsonSerializer.Deserialize<JsonElement>(json);
+            var headNode = CreateJsonTree(element, fallbackObjectName, null);
+            if (orderByChildrenCount)
+                headNode.OrderByChildren();
+            return headNode;
         }
-        public static List<JsonTreeNode> FromJsonToFlattenedTree(string json, bool orderByChildrenCount, string fallbackObjectName)
-        {
-            var headNode = FromJsonToTree(json, orderByChildrenCount, fallbackObjectName);
-            var flattenedNodes = headNode.FlattenNodes();
-            return flattenedNodes;
-        }
-
+        
         private static JsonTreeNode CreateJsonTree(JsonElement jsonElement, string fallbackObjectName, Guid? parentId)
         {
             JsonTreeNode parentNode;
@@ -47,14 +39,6 @@ namespace JsonTreeParser.Core
                     break;
             }
             return parentNode;
-        }
-        private static JsonTreeNode FromJsonToTree(string json, bool orderByChildrenCount, string fallbackObjectName)
-        {
-            var element = JsonSerializer.Deserialize<JsonElement>(json);
-            var headNode = CreateJsonTree(element, fallbackObjectName, null);
-            if (orderByChildrenCount)
-                headNode.OrderByChildren();
-            return headNode;
         }
         private static void PropagateNodeTree(Dictionary<string, JsonElement> dic, JsonTreeNode parentNode)
         {
