@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using JsonTreeParser.Extensions;
+using System;
 
 namespace JsonDataTreeVisualizer.Pages
 {
@@ -32,9 +33,7 @@ namespace JsonDataTreeVisualizer.Pages
             try
             {
                 UserJson = JsonSamplesStore.Samples.First(x => x.Id == SelectedSampleId).Value;
-
-                var root = JsonTreeNodeBuilder.BuildFromJson(UserJson, orderNodesByChildrenCount, null);
-                FlattenedNodes = root.FlattenNodes();
+                FlattenedNodes = BuildFlattenedNodesFromJson(UserJson, orderNodesByChildrenCount, null);
             }
             catch
             {
@@ -47,8 +46,7 @@ namespace JsonDataTreeVisualizer.Pages
             try
             {
                 if (string.IsNullOrEmpty(UserJson)) return;
-                var root = JsonTreeNodeBuilder.BuildFromJson(UserJson, orderNodesByChildrenCount, null);
-                FlattenedNodes = root.FlattenNodes();
+                FlattenedNodes = BuildFlattenedNodesFromJson(UserJson, orderNodesByChildrenCount, null);
             }
             catch (JsonException)
             {
@@ -59,6 +57,12 @@ namespace JsonDataTreeVisualizer.Pages
         {
             var root = FlattenedNodes.BuildRootNode();
             UserJson = root.Serialize();
+        }
+
+        private static List<JsonTreeNode> BuildFlattenedNodesFromJson(string userJson, bool orderNodesByChildrenCount, string fallbackObjectName)
+        {
+            var root = JsonTreeNodeBuilder.BuildFromJson(userJson, orderNodesByChildrenCount, fallbackObjectName);
+            return root.FlattenNodes();
         }
     }
 }

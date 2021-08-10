@@ -32,7 +32,7 @@ namespace JsonTreeParser.Core
                 case JsonValueKind.Object:
                     parentNode = JsonTreeNode.CreateObjectNode(key: fallbackObjectName, level: 0, parentId: parentId);
                     var objectDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonElement.GetRawText());
-                    PropagateNodeTree(objectDict, parentNode);
+                    PropagateObjectNodeTree(objectDict, parentNode);
                     break;
                 default:
                     parentNode = JsonTreeNode.CreateFinalNode(key: fallbackObjectName, level: 0, parentId: parentId, GetSimpleObjectValue(jsonElement), jsonElement.ValueKind);
@@ -40,7 +40,7 @@ namespace JsonTreeParser.Core
             }
             return parentNode;
         }
-        private static void PropagateNodeTree(Dictionary<string, JsonElement> dic, JsonTreeNode parentNode)
+        private static void PropagateObjectNodeTree(Dictionary<string, JsonElement> dic, JsonTreeNode parentNode)
         {
             int level = parentNode.Level + 1;
             foreach (var item in dic)
@@ -51,7 +51,7 @@ namespace JsonTreeParser.Core
                     case JsonValueKind.Object:
                         node = JsonTreeNode.CreateObjectNode(item.Key, level, parentId: parentNode.ID);
                         var subDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(item.Value.GetRawText());
-                        PropagateNodeTree(subDict, node);
+                        PropagateObjectNodeTree(subDict, node);
                         parentNode.Children.Add(node);
                         break;
                     case JsonValueKind.String:
@@ -84,7 +84,7 @@ namespace JsonTreeParser.Core
                             {
                                 nodeEl = JsonTreeNode.CreateObjectNode(null, level, parentId: node.ID);
                                 var subDict2 = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonElement.GetRawText());
-                                PropagateNodeTree(subDict2, nodeEl);
+                                PropagateObjectNodeTree(subDict2, nodeEl);
                             }
                             else
                             {

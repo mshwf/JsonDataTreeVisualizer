@@ -95,7 +95,7 @@
         if (jsonVal) {
             var jsonStr = jsonVal.trim();
             var jsonObj = JSON.parse(jsonStr);
-            var beautifiedJson = JSON.stringify(jsonObj, null, n).trim();// stringify with n spaces at each level
+            var beautifiedJson = JSON.stringify(jsonObj, null, n).trim();//stringify with n spaces at each level
             document.getElementById('txtJson').value = beautifiedJson;
         }
     }
