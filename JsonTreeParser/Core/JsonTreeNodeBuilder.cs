@@ -2,20 +2,20 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
- 
+
 namespace JsonTreeParser.Core
 {
     public class JsonTreeNodeBuilder
     {
-        public static JsonTreeNode BuildFromJson(string json, bool orderByChildrenCount, string fallbackObjectName)
+        public static JsonTreeNode BuildFromJson(string json, bool orderByChildrenCount = false, string rootObjectKey = null)
         {
             var element = JsonSerializer.Deserialize<JsonElement>(json);
-            var headNode = CreateJsonTree(element, fallbackObjectName, null);
+            var headNode = CreateJsonTree(element, rootObjectKey, null);
             if (orderByChildrenCount)
                 headNode.OrderByChildren();
             return headNode;
         }
-        
+
         private static JsonTreeNode CreateJsonTree(JsonElement jsonElement, string fallbackObjectName, Guid? parentId)
         {
             JsonTreeNode parentNode;
