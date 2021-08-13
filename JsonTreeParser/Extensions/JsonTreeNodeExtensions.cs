@@ -31,7 +31,7 @@ namespace JsonTreeParser.Extensions
             var json = JsonSerializer.Serialize(jsonObj);
             return json;
         }
-        public static JsonTreeNode BuildRootNode(this List<JsonTreeNode> flattenedNodes)
+        public static JsonTreeNode BuildRootNode(this IEnumerable<JsonTreeNode> flattenedNodes)
         {
             var root = flattenedNodes.First(x => x.ParentID == null);
             var children = flattenedNodes.Where(n => n.ParentID != null).ToList();

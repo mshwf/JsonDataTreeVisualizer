@@ -7,8 +7,12 @@ Usage:
 
 Two main functionalities:
 
-Convert JSON string to Tree node, and then convert the root to list of nodes (to be easily manipulated from UI):
+Convert JSON string to Tree node. Set orderNodesByChildrenCount to true if you wan same-level children 
+grouped together (this will change the JSON ordering, not the value), default to false.
+Set defaultRootName to give a name to the virtual root (doesn't reflect to the final JSON):
     JsonTreeNode root = JsonTreeNodeBuilder.BuildFromJson(string: json, bool: orderNodesByChildrenCount, string: defaultRootName);
+    
+and then convert the root to list of nodes (to be easily manipulated from UI):
     List<JsonTreeNode> flattenedNodes = root.FlattenNodes();
 
 Convert list of nodes back to JSON string:
