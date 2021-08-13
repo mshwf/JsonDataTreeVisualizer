@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
@@ -13,10 +12,7 @@ namespace JsonTreeParser.Core
         public Guid? ID { get; set; }
         public Guid? ParentID { get; set; }
         public string Key { get; set; }
-        [DisplayFormat(ConvertEmptyStringToNull = false)]
         public object Value { get; set; }
-        [DisplayFormat(ConvertEmptyStringToNull = false)]
-        public string StringValue { get; set; }
         public JsonValueKind ValueKind { get; set; }
         public int Level { get; set; }
         
@@ -36,7 +32,6 @@ namespace JsonTreeParser.Core
             {
                 Key = key,
                 Value = value,
-                StringValue = value?.ToString(),
                 ValueKind = valueKind,
                 Level = level,
                 ParentID = parentId

@@ -23,7 +23,7 @@ namespace JsonDataTreeVisualizer.Pages
         }
         public IEnumerable<SelectListItem> JsonSamplesSelect { get; set; }
         [BindProperty]
-        public List<JsonTreeNode> FlattenedNodes { get; set; } = new List<JsonTreeNode>();
+        public List<JsonTreeNodeViewModel> FlattenedNodes { get; set; } = new List<JsonTreeNodeViewModel>();
         [BindProperty]
         public string UserJson { get; set; }
         [BindProperty(SupportsGet = true)]
@@ -55,14 +55,16 @@ namespace JsonDataTreeVisualizer.Pages
         }
         public void OnPostBuildJsonObject()
         {
-            var root = FlattenedNodes.BuildRootNode();
+            var flatNodes = FlattenedNodes.Select(JsonTreeNodeViewModel.ToJsonTreeNode);
+            var root = flatNodes.BuildRootNode();
             UserJson = root.Serialize();
         }
 
-        private static List<JsonTreeNode> BuildFlattenedNodesFromJson(string userJson)
+        private static List<JsonTreeNodeViewModel> BuildFlattenedNodesFromJson(string userJson)
         {
             var root = JsonTreeNodeBuilder.BuildFromJson(userJson);
-            return root.FlattenNodes();
+            var flatNodes = root.FlattenNodes();
+            return flatNodes.Select(JsonTreeNodeViewModel.FromJsonTreeNode).ToList();
         }
     }
 }

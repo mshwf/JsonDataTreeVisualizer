@@ -58,7 +58,7 @@ namespace JsonTreeParser.Extensions
         }
         private static object ToSerializableObject(this JsonTreeNode node)
         {
-            object ser;
+            object serializable;
             if (node.ValueKind == JsonValueKind.Array)
             {
                 object[] arr = new object[node.Children.Count];
@@ -68,18 +68,18 @@ namespace JsonTreeParser.Extensions
                     var serObj = arrNode.ToSerializableObject();
                     arr[i] = serObj;
                 }
-                ser = arr;
+                serializable = arr;
             }
             else if (node.ValueKind == JsonValueKind.Object)
             {
                 var dic = node.ToDictionary();
-                ser = dic;
+                serializable = dic;
             }
             else
             {
-                ser = GetTypedValue(node.StringValue, node.ValueKind);
+                serializable = node.Value;
             }
-            return ser;
+            return serializable;
         }
         private static Dictionary<string, object> ToDictionary(this JsonTreeNode node)
         {
@@ -88,7 +88,7 @@ namespace JsonTreeParser.Extensions
             foreach (var child in node.Children)
             {
                 if (child.ValueKind != JsonValueKind.Array)
-                    dic[child.Key] = child.Children.Count == 0 ? GetTypedValue(child.StringValue, child.ValueKind) : child.ToDictionary();
+                    dic[child.Key] = child.Children.Count == 0 ? child.Value : child.ToDictionary();
                 else
                 {
                     var serObj = child.ToSerializableObject();
@@ -97,20 +97,6 @@ namespace JsonTreeParser.Extensions
             }
 
             return dic;
-        }
-        private static object GetTypedValue(string value, JsonValueKind valueKind)
-        {
-            switch (valueKind)
-            {
-                case JsonValueKind.Number:
-                    return double.Parse(value);
-                case JsonValueKind.True:
-                case JsonValueKind.False:
-                    return value.ToString() == "True";
-                default:
-                    break;
-            }
-            return value;
         }
     }
 }
