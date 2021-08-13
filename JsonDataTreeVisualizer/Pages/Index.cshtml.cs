@@ -23,7 +23,7 @@ namespace JsonDataTreeVisualizer.Pages
         }
         public IEnumerable<SelectListItem> JsonSamplesSelect { get; set; }
         [BindProperty]
-        public List<JsonTreeNode> FlattenedNodes { get; set; } = new List<JsonTreeNode>();
+        public List<JsonTreeNodeViewModel> FlattenedNodes { get; set; } = new List<JsonTreeNodeViewModel>();
         [BindProperty]
         public string UserJson { get; set; }
         [BindProperty(SupportsGet = true)]
@@ -33,7 +33,7 @@ namespace JsonDataTreeVisualizer.Pages
             try
             {
                 UserJson = JsonSamplesStore.Samples.First(x => x.Id == SelectedSampleId).Value;
-                FlattenedNodes = BuildFlattenedNodesFromJson(UserJson);
+                FlattenedNodes = BuildFlattenedNodesFromJson(UserJson).Select(JsonTreeNodeViewModel.FromJsonTreeNode).ToList();
             }
             catch
             {
@@ -46,7 +46,7 @@ namespace JsonDataTreeVisualizer.Pages
             try
             {
                 if (string.IsNullOrEmpty(UserJson)) return;
-                FlattenedNodes = BuildFlattenedNodesFromJson(UserJson);
+                FlattenedNodes = BuildFlattenedNodesFromJson(UserJson).Select(JsonTreeNodeViewModel.FromJsonTreeNode).ToList();
             }
             catch (JsonException)
             {
@@ -55,7 +55,7 @@ namespace JsonDataTreeVisualizer.Pages
         }
         public void OnPostBuildJsonObject()
         {
-            var root = FlattenedNodes.BuildRootNode();
+            var root = FlattenedNodes.Select(JsonTreeNodeViewModel.ToJsonTreeNode).BuildRootNode();
             UserJson = root.Serialize();
         }
 
