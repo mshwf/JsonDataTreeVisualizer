@@ -51,7 +51,7 @@ namespace JsonDataTreeVisualizer
                     return double.Parse(value);
                 case JsonValueKind.True:
                 case JsonValueKind.False:
-                    return value.ToString() == "True";
+                    return value == "True";
                 default:
                     break;
             }
