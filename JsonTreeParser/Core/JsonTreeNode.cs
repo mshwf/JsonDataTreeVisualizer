@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 
 namespace JsonTreeParser.Core
 {
-    [DebuggerDisplay("Key = {Key}, Value = {Value}")]
     public class JsonTreeNode
     {
         public Guid? ID { get; set; }

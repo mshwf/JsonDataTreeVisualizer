@@ -44,8 +44,8 @@
                                 case System.Text.Json.JsonValueKind.False:
                                     <label for="@id" style="margin-left: @margin" class="mr-1">@node.Key</label>
                                     <input type="checkbox" class="form-control" name="FlattenedNodes[@i].Value"
-                                           checked="@(node.Value == "True")"
-                                           value="True" id="@id" />
+                                           checked="@(node.Value == bool.TrueString)"
+                                           value="@bool.TrueString" id="@id" />
                                     break;
                                 case System.Text.Json.JsonValueKind.Null:
                                 case System.Text.Json.JsonValueKind.Undefined:

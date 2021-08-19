@@ -1,10 +1,12 @@
 ﻿using JsonTreeParser.Core;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace JsonDataTreeVisualizer
 {
+    [DebuggerDisplay("Key: {Key}, Value: {Value}")]
     public class JsonTreeNodeViewModel
     {
         public Guid? ID { get; set; }
@@ -51,7 +53,7 @@ namespace JsonDataTreeVisualizer
                     return double.Parse(value);
                 case JsonValueKind.True:
                 case JsonValueKind.False:
-                    return value == "True";
+                    return value == bool.TrueString;
                 default:
                     break;
             }
